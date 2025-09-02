@@ -1,5 +1,4 @@
 %{
-  /* CS22B059. CS23B004, CS23B012, CS23B020 */
     #include <bits/stdc++.h>
     #include <stdio.h>
     #include <stdlib.h>
@@ -8,6 +7,7 @@
     void yyerror(char *);
     int yylex(void);
     int line_counter = 1;
+    // extern int yydebug;
 
     string indent(const string &inp) {
         string res = "";
@@ -20,94 +20,193 @@
     }
 %}
 
+// %debug
+
 %union {
     char* val;
     int indent;
 }
 
 %token <val> IDENTIFIER NUMBER
-%type <val> int char float void type
-%token INT CHAR FLOAT VOID IF ELSE WHILE RETURN  
-%type <val> statements statement expression assignment return_stmt if_else_block while_block declaration 
+%type <val> int boolean arraytype type 
+%token INT BOOLEAN ARRAYTYPE IF ELSE WHILE RETURN TRUE FALSE THIS NEW DO PRINT PUBLIC STATIC EXTENDS STRING DEFINE CLASS VOID MAIN LENGTH LE NE AND OR
+%type <val> statements statement expression assignment while_block declaration 
 
-%left '+' '-' 
+%left OR
+%left AND
+%left LE NE
+%left '+' '-'
 %left '*' '/'
 
 %%
 
 program:
-    program function
+    CompoundMacroDefinition MainClass CompoundTypeDeclaration 
+    ;
+
+CompoundMacroDefinition:
+    MacroDefinition CompoundMacroDefinition 
+    |  /* empty */
+    ;
+ 
+CompoundTypeDeclaration:
+    TypeDeclaration CompoundTypeDeclaration 
+    |  /* empty */
+    ;
+
+MainClass:
+    CLASS IDENTIFIER '{' PUBLIC STATIC VOID MAIN '(' STRING '[' ']' IDENTIFIER ')' '{' statement '}' '}'
+    ;
+ 
+TypeDeclaration:
+    CLASS IDENTIFIER '{'  CompoundDeclaration CompoundMethodDeclaration '}'
+ 
+CompoundMethodDeclaration:
+    MethodDeclaration CompoundMethodDeclaration 
+    |  /* empty */
+    ;
+ 
+MethodDeclaration:
+    PUBLIC type IDENTIFIER '(' parameters ')' '{' CompoundDeclaration statements RETURN expression ';' '}'
+
+parameters:
+    paramList
+    |  /* empty */
+    ;
+
+paramList:
+    declaration
+    | declaration ',' paramList
     | /* empty */
     ;
 
-function:
-    type IDENTIFIER '(' ')' '{' statements '}' { cout << $1 << ' ' << $2 << "() {\t" << indent(string($6)) << "\n}\n" ; }
-    ;
-
-type:
-    int | char | float | void { $$ = $1; }
-    ;
-
-int:
-   INT { $$ = "int"; }
-   ;
-
-float:
-   FLOAT { $$ = "float"; }
-   ;
-
-char:
-   CHAR { $$ = "char"; }
-   ;
-
-void:
-   VOID { $$ = "void"; }
-   ;
-
-
-statements:
-    statements statement { $$ = strdup(string(string($1) + "\n" + string($2)).data()); }
-    | { $$ = ""; }
-    ;
-
-statement:
-    expression ';' { $$ = string(string($1) + ";").data(); } 
-    | declaration ';' { $$ = strdup(string(string($1) + ";").data()); }  
-    | assignment ';' { $$ = strdup(strdup(string(string($1) + ";").data())); }  
-    | return_stmt ';' { $$ = strdup(string(string($1) + ";").data()); } 
-    | if_else_block { $$ = $1; }
-    | while_block { $$ = $1; }
-    ;
-
-assignment:
-    IDENTIFIER '=' expression { $$ = strdup(string( string($1) + " = " + string($3) ).data()); }
+CompoundDeclaration:
+    declaration ';' CompoundDeclaration 
+    | /* empty */
     ;
 
 declaration:
-    type IDENTIFIER { $$ = strdup(string( string($1) + " " + string($2) ).data()); }
+    type IDENTIFIER
     ;
 
-return_stmt:
-    RETURN expression { $$ = strdup(string( "return " + string($2)).data()); }
+statements: 
+    statement statements 
+    | /* empty */
     ;
 
-if_else_block:
-    IF '(' expression ')' '{' statements '}' ELSE '{' statements '}' { $$ = strdup(string( "if (" + string($3) + ") {" + indent(string($6)) + "\n} else {" + indent(string($10)) + "\n}").data()); }
+statement :
+    expression
+	| 	print_smt
+	| 	assignment
+    |   declaration
+	| 	access
+	| 	if_block
+	| 	do_while_block
+	| 	while_block
+	| 	IDENTIFIER CompoundDeclaration ';'
+    ;
+
+CompoundExpression:
+    expression ExpressionList
+    | /* empty */
+    ;
+
+ExpressionList:
+    ',' expression
+    | /* empty */
+    ;
+
+print_smt:
+    PRINT '(' expression ')' ';'
+
+assignment:
+    IDENTIFIER '=' expression ';'
+    ;
+
+access:
+    IDENTIFIER '[' expression ']' '=' expression ';'
+    ;
+
+if_block:
+    IF '(' expression ')' statements
+    | IF '(' expression ')' statements ELSE statements
+    ;
+
+do_while_block:
+    DO statements WHILE '(' expression ')' ';'
     ;
 
 while_block:
-    WHILE '(' expression ')' '{' statements '}' { $$ = strdup(string("while (" + string($3) + ") {" + indent(string($6)) + "\n}").data()); }
+    WHILE '(' expression ')' statements
 
 expression:
-    '(' expression ')' { $$ = strdup(string( "(" + string($2) + ")" ).data()); }
-    | expression '+' expression { $$ = strdup(string( string($1) + " + " + string($3) ).data()); } 
-    | expression '-' expression { $$ = strdup(string( string($1) + " - " + string($3) ).data()); } 
-    | expression '*' expression { $$ = strdup(string( string($1) + " * " + string($3) ).data()); } 
-    | expression '/' expression { $$ = strdup(string( string($1) + " / " + string($3) ).data()); } 
-    | IDENTIFIER { $$ = $1; }
-    | NUMBER { $$ = $1; }
-    | '-' expression  { $$ = strdup(string( "-" + string($2) ).data()); } 
-    | IDENTIFIER '(' ')'  { $$ = strdup(string( string($1) + "(" + ")" ).data()); } 
+    expression AND expression
+	| 	expression OR expression
+	| 	expression NE expression
+	| 	expression LE expression
+	| 	expression '+' expression
+	| 	expression '-' expression
+	| 	expression '*' expression
+	| 	expression '/' expression
+	| 	expression '[' expression ']'
+	| 	expression '.' LENGTH
+	| 	PrimaryExpression
+	| 	expression '.' IDENTIFIER CompoundExpression
+	| 	IDENTIFIER CompoundExpression
+	| 	'(' IDENTIFIER ')' '-' '>' expression
+
+PrimaryExpression:
+    NUMBER
+	| 	TRUE
+	| 	FALSE
+	| 	IDENTIFIER
+    |   IDENTIFIER '(' ')'                  
+    |   IDENTIFIER CompoundExpression
+	| 	THIS
+	| 	NEW INT '[' expression ']'
+	| 	NEW IDENTIFIER '(' ')'
+	| 	'!' expression
+	| 	'(' expression ')'
+
+MacroDefinition:
+    MacroDefExpression
+    | MacroDefStatement
+    ;
+
+MacroDefStatement:
+    DEFINE CompoundIdentifierList '(' ')' '{' statements '}'
+    
+MacroDefExpression:
+    DEFINE CompoundIdentifierList '(' ')' '(' expression ')'
+
+CompoundIdentifierList:
+    IDENTIFIER IdentifierList
+    |  /* empty */
+    ;
+
+IdentifierList:
+    ',' IDENTIFIER
+    | /* empty */
+    ;
+
+type:
+    int | boolean | arraytype | id
+    ;
+
+int:
+   INT
+   ;
+
+boolean:
+    BOOLEAN
+    ;
+
+arraytype:
+    ARRAYTYPE
+    ;
+
+id:
+    IDENTIFIER
     ;
 %%
 
@@ -117,5 +216,6 @@ void yyerror(char *s) {
 }
 
 int main(int argc, char** argv) {
+    // yydebug = 1;
     return yyparse();
 }

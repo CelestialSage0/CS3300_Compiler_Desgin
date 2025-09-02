@@ -1,15 +1,16 @@
 %{
     #include <bits/stdc++.h>
-    #include "y.tab.h"
+    #include "P1.tab.h"
     void yyerror(char *);
     using namespace std;
 %}
 
+
 %%
 
 "int"           { return INT; }
-"char"          { return CHAR; }
-"float"         { return FLOAT; }
+"boolean"       { return BOOLEAN; }
+"int[]"         { return ARRAYTYPE; }
 "void"          { return VOID; }
 "if"            { return IF; }
 "else"          { return ELSE; }
@@ -17,8 +18,18 @@
 "return"        { return RETURN; }
 "true"          { return TRUE; }
 "false"         { return FALSE; }
-"this"          {return THIS; }
-
+"this"          { return THIS; }
+"new"           { return NEW; }
+"do"            { return DO; }
+"class"         { return CLASS; }
+"System.out.println" { return PRINT; }
+"static"        { return STATIC; }
+"public"        { return PUBLIC; }
+"extends"       { return EXTENDS; }
+"String"        { return STRING; }
+"#define"       { return DEFINE; }
+"main"          { return MAIN; }
+"length"        { return LENGTH; }
 
 "("             { return '('; }
 ")"             { return ')'; }
@@ -26,9 +37,17 @@
 "}"             { return '}'; }
 "*"             { return '*'; }
 "/"             { return '/'; }
-"+"             { return '+';}
+"+"             { return '+'; }
 "-"             { return '-'; }
-
+"!="            { return NE; }
+"&&"            { return AND; }
+"."             { return '.'; }
+"["             { return '['; }
+"]"             { return ']'; }
+">"             { return '>'; }
+"<"             { return '<'; }
+"<="            { return LE; }
+"||"            { return OR; }
 "="             { return '='; }
 ";"             { return ';'; }
 
