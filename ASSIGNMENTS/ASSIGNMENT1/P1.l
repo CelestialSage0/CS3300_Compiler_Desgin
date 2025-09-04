@@ -39,15 +39,15 @@
 "/"             { return '/'; }
 "+"             { return '+'; }
 "-"             { return '-'; }
-"!="            { return NE; }
-"&&"            { return AND; }
+"!"            { return '!'; }
+","             { return ','; }
+"&"            { return '&'; }
 "."             { return '.'; }
 "["             { return '['; }
 "]"             { return ']'; }
 ">"             { return '>'; }
 "<"             { return '<'; }
-"<="            { return LE; }
-"||"            { return OR; }
+"|"            { return '|'; }
 "="             { return '='; }
 ";"             { return ';'; }
 
@@ -58,6 +58,7 @@
 
 [ \t]           { /* ignore whitespace */ }
 
+"//".*            { /* ignore everything until end of line */ }
 "\n"            { }
 .               { }
 

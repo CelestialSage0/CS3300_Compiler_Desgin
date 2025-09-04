@@ -8,18 +8,7 @@ BISON_HDR  = P1.tab.h
 FLEX_OUT   = lex.yy.c
 EXEC       = P1
 INPUT      = X.Java
-OUTPUT     = Y.Java
-
-# Compiler
-CXX = g++
-CXXFLAGS = -std=c++17
-
-# Default target (build everything, including Y.java)
-all: $(OUTPUT)
-
-# Build Y.java by running the parser
-$(OUTPUT): $(EXEC)
-	./$(EXEC) < $(INPUT) > $(OUTPUT)
+OUTPUT	   = P1.output
 
 # Build executable
 $(EXEC): $(BISON_OUT) $(FLEX_OUT)
@@ -27,7 +16,7 @@ $(EXEC): $(BISON_OUT) $(FLEX_OUT)
 
 # Generate bison files
 $(BISON_OUT) $(BISON_HDR): $(BISON_FILE)
-	bison -d $(BISON_FILE)
+	bison -d -v $(BISON_FILE)
 
 # Generate flex file (depends on Bison header)
 $(FLEX_OUT): $(FLEX_FILE) $(BISON_HDR)
