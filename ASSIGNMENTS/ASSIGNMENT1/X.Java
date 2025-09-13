@@ -1,92 +1,153 @@
-class BubbleSort{
+import java.util.function.Function;
+
+#define ZERO() (0+0)
+#define ONE(x) (x*x)
+#define print(arg) {System.out.println(arg);} 
+#define LARGE() (9999+0)
+#define INPUT() (20+0)
+#define SUM(x, y) (x + y)
+class BinarySearch{
     public static void main(String[] a){
-	System.out.println(new BBS().Start(10));
+	System.out.println(new BS().Start(INPUT()));
     }
 }
+// This class contains an array of integers and
+// methods to initialize, print and search the array
+// using Binary Search
 
-
-// This class contains the array of integers and
-// methods to initialize, print and sort the array
-// using Bublesort
-class BBS{
-    
+class BS{
     int[] number ;
     int size ;
 
-    // Invoke the Initialization, Sort and Printing
-    // Methods
+    // Invoke methods to initialize, print and search
+    // for elements on the array
     public int Start(int sz){
 	int aux01 ;
-	aux01 = this.Init(sz);
-	aux01 = this.Print();
-	System.out.println(99999);
-	aux01 = this.Sort();
-	aux01 = this.Print();
-	return 0 ;
-    }
-
- 
-    // Sort array of integers using Bublesort method
-    public int Sort(){
-	int nt ;
-	int i ;
 	int aux02 ;
-	int aux04 ;
-	int aux05 ;
-	int aux06 ;
-	int aux07 ;
-	int j ;
-	int t ;
-	i = size - 1 ;
-	aux02 = 0 - 1 ;
-	while (aux02 <= (i-1)) {
-	    j = 1 ;
-	    //aux03 = i+1 ;
-	    while (j <= i){
-		aux07 = j - 1 ;
-		aux04 = number[aux07] ;
-		aux05 = number[j] ;
-		if (aux05 <= (aux04-1)) {
-		    aux06 = j - 1 ;
-		    t = number[aux06] ;
-		    number[aux06] = number[j] ;
-		    number[j] = t;
-		}
-		else nt = 0 ;
-		j = j + 1 ;
-	    }
-	    i = i - 1 ;
-	}
-	return 0 ;
+	aux01 = this.Init(sz);
+	aux02 = this.Print();
+	arg02 = SUM(z, y);
+	if (this.Search(8)) {print(aux01);}
+	else {print(ZERO());}
+	if (this.Search(19)) {print(ONE(3+2));}
+	else {print(ZERO());}
+	if (this.Search(20)) {print(ONE(3+2));}
+	else {print(ZERO());}
+	if (this.Search(21)) {print(ONE(3+2));}
+	else {print(ZERO());}
+	if (this.Search(37)) {print(ONE(3+2));}
+	else {print(ZERO());}
+	if (this.Search(38)) {print(ONE(3+2));}
+	else {print(ZERO());}
+	if (this.Search(39)) {print(ONE(3+2));}
+	else {print(ZERO());}
+	if (this.Search(50)) {print(ONE(3+2));}
+	else {print(ZERO());}
+
+	return 999 ;
     }
 
-    // Printing method
+
+    // Search for a specific value (num) using
+    // binary search
+    public boolean Search(int num){
+	boolean bs01 ;
+	int right ;
+	int left ;
+	boolean var_cont ;
+	int medium ;
+	int aux01 ;
+	int nt ;
+
+	aux01 = 0 ;
+	bs01 = false ;
+	right = number.length ;
+	right = right - 1 ;
+	left = 0 ;
+	var_cont = true ;
+	while (var_cont){
+	    medium = left + right ;
+	    medium = this.Div(medium);
+	    aux01 = number[medium] ;
+	    if (num <= (aux01-1)) right = medium - 1 ;
+	    else left = medium + 1 ;
+	    if (this.Compare(aux01,num)) var_cont = false ;
+	    else var_cont = true ;
+	    if (right <= (left-1)) var_cont = false ;
+	    else nt = 0 ;
+	}
+
+	if (this.Compare(aux01,num)) bs01 = true ;
+	else bs01 = false ;
+	return bs01 ;
+    }
+
+    // This method computes and returns the
+    // integer division of a number (num) by 2
+    public int Div(int num){
+	int count01 ;
+	int count02 ;
+	int aux03 ;
+
+	count01 = 0 ;
+	count02 = 0 ;
+	aux03 = num - 1 ;
+	while ((count02 <= aux03)&&(count02 != aux03)) {
+	    count01 = count01 + 1 ;
+	    count02 = count02 + 2 ;
+	}
+	return count01 ;	
+    }
+
+    
+    // This method compares two integers and
+    // returns true if they are equal and false
+    // otherwise
+    public boolean Compare(int num1 , int num2){
+	boolean retval ;
+	int aux02 ;
+
+	retval = false ;
+	aux02 = num2 + 1 ;
+	if (num1 <= (num2-1)) retval = false ;
+	else if (!(num1 <= (aux02-1))) retval = false ;
+	else retval = true ;
+	return retval ;
+    }
+
+    // Print the integer array
     public int Print(){
 	int j ;
-	j = 0 ;
-	while (j <= (size-1)) {
+
+	j = 1 ;
+	while ((j <= size)&&(j!=size)) {
 	    System.out.println(number[j]);
 	    j = j + 1 ;
 	}
+	System.out.println(LARGE());
 	return 0 ;
     }
     
-    // Initialize array of integers
+
+    // Initialize the integer array
     public int Init(int sz){
+	int j ;
+	int k ;
+	int aux02 ;
+	int aux01 ;
+
 	size = sz ;
 	number = new int[sz] ;
 	
-	number[0] = 20 ;
-	number[1] = 7  ; 
-	number[2] = 12 ;
-	number[3] = 18 ;
-	number[4] = 2  ; 
-	number[5] = 11 ;
-	number[6] = 6  ; 
-	number[7] = 9  ; 
-	number[8] = 19 ; 
-	number[9] = 5  ;
-	
+	j = 1 ;
+	k = size + 1 ;
+	while (j <= (size-1)) {
+	    aux01 = 2 * j ;
+	    aux02 = k - 3 ;
+	    number[j] = aux01 + aux02 ;
+	    j = j + 1 ;
+	    k = k - 1 ;
+	}
 	return 0 ;	
     }
 

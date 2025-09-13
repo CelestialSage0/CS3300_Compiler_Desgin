@@ -30,6 +30,11 @@
 "#define"       { return DEFINE; }
 "main"          { return MAIN; }
 "length"        { return LENGTH; }
+"import"        { return IMPORT; }
+"java.util.function.Function"    { return HEADER; }
+"Function"      { return FUNCTION; }
+
+[)][ \n\t]*[-][>] { return ARROW; }
 
 "("             { return '('; }
 ")"             { return ')'; }

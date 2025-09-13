@@ -1,4 +1,6 @@
-# Makefile for building parser using bison, flex, and g++
+# Compiler and flags
+CXX       = g++
+CXXFLAGS  = -Wall -g
 
 # Files
 BISON_FILE = P1.y
@@ -8,7 +10,10 @@ BISON_HDR  = P1.tab.h
 FLEX_OUT   = lex.yy.c
 EXEC       = P1
 INPUT      = X.Java
-OUTPUT	   = P1.output
+OUTPUT     = Y.Java
+
+# Default target (builds executable and runs it to produce Y.Java)
+all: $(OUTPUT)
 
 # Build executable
 $(EXEC): $(BISON_OUT) $(FLEX_OUT)
@@ -16,12 +21,18 @@ $(EXEC): $(BISON_OUT) $(FLEX_OUT)
 
 # Generate bison files
 $(BISON_OUT) $(BISON_HDR): $(BISON_FILE)
-	bison -d -v $(BISON_FILE)
+	bison -d $(BISON_FILE)
 
 # Generate flex file (depends on Bison header)
 $(FLEX_OUT): $(FLEX_FILE) $(BISON_HDR)
 	flex $(FLEX_FILE)
 
+# Run parser on input to produce output
+$(OUTPUT): $(EXEC) $(INPUT)
+	./$(EXEC) < $(INPUT) > $(OUTPUT)
+
 # Clean build files
 clean:
 	rm -f $(BISON_OUT) $(BISON_HDR) $(FLEX_OUT) $(EXEC) $(OUTPUT)
+
+.PHONY: all clean
