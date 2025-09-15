@@ -1,0 +1,12 @@
+int main() {hello();}
+
+void hello() { if (x) {
+        if (y) { r = 1 + 2 -4;
+            return 5; } else {
+            int y;
+        }
+        } else {
+        int hiii;
+        while (x) {                                                     x = 5/ -7 / 0; }
+    }
+    }
