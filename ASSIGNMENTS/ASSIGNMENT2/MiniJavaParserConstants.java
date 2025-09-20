@@ -23,73 +23,95 @@ public interface MiniJavaParserConstants {
   /** RegularExpression Id. */
   int RSQPAREN = 12;
   /** RegularExpression Id. */
-  int LBRACE = 13;
+  int LT = 13;
   /** RegularExpression Id. */
-  int RBRACE = 14;
+  int GT = 14;
   /** RegularExpression Id. */
-  int SEMICOLON = 15;
+  int LBRACE = 15;
   /** RegularExpression Id. */
-  int DOT = 16;
+  int RBRACE = 16;
   /** RegularExpression Id. */
-  int ASSIGN = 17;
+  int SEMICOLON = 17;
   /** RegularExpression Id. */
-  int LT = 18;
+  int DOT = 18;
   /** RegularExpression Id. */
-  int PLUS = 19;
+  int ARROW = 19;
   /** RegularExpression Id. */
-  int MINUS = 20;
+  int ASSIGN = 20;
   /** RegularExpression Id. */
-  int AND = 21;
+  int LE = 21;
   /** RegularExpression Id. */
-  int NOT = 22;
+  int NE = 22;
   /** RegularExpression Id. */
-  int BOOLEAN = 23;
+  int PLUS = 23;
   /** RegularExpression Id. */
-  int CLASS = 24;
+  int MINUS = 24;
   /** RegularExpression Id. */
-  int INTERFACE = 25;
+  int MULT = 25;
   /** RegularExpression Id. */
-  int ELSE = 26;
+  int DIV = 26;
   /** RegularExpression Id. */
-  int EXTENDS = 27;
+  int AND = 27;
   /** RegularExpression Id. */
-  int FALSE = 28;
+  int OR = 28;
   /** RegularExpression Id. */
-  int IF = 29;
+  int NOT = 29;
   /** RegularExpression Id. */
-  int WHILE = 30;
+  int BOOLEAN = 30;
   /** RegularExpression Id. */
-  int INTEGER = 31;
+  int CLASS = 31;
   /** RegularExpression Id. */
-  int LENGTH = 32;
+  int INTERFACE = 32;
   /** RegularExpression Id. */
-  int MAIN = 33;
+  int ELSE = 33;
   /** RegularExpression Id. */
-  int NEW = 34;
+  int EXTENDS = 34;
   /** RegularExpression Id. */
-  int PUBLIC = 35;
+  int FALSE = 35;
   /** RegularExpression Id. */
-  int RETURN = 36;
+  int IF = 36;
   /** RegularExpression Id. */
-  int STATIC = 37;
+  int WHILE = 37;
   /** RegularExpression Id. */
-  int STRING = 38;
+  int INTEGER = 38;
   /** RegularExpression Id. */
-  int THIS = 39;
+  int LENGTH = 39;
   /** RegularExpression Id. */
-  int TRUE = 40;
+  int MAIN = 40;
   /** RegularExpression Id. */
-  int PRINT = 41;
+  int NEW = 41;
   /** RegularExpression Id. */
-  int VOID = 42;
+  int PUBLIC = 42;
   /** RegularExpression Id. */
-  int INTEGER_LITERAL = 43;
+  int RETURN = 43;
   /** RegularExpression Id. */
-  int IDENTIFIER = 44;
+  int STATIC = 44;
   /** RegularExpression Id. */
-  int LETTER = 45;
+  int STRING = 45;
   /** RegularExpression Id. */
-  int DIGIT = 46;
+  int THIS = 46;
+  /** RegularExpression Id. */
+  int TRUE = 47;
+  /** RegularExpression Id. */
+  int PRINT = 48;
+  /** RegularExpression Id. */
+  int VOID = 49;
+  /** RegularExpression Id. */
+  int DEFINE = 50;
+  /** RegularExpression Id. */
+  int FUNCTION = 51;
+  /** RegularExpression Id. */
+  int IMPORT = 52;
+  /** RegularExpression Id. */
+  int JUFF = 53;
+  /** RegularExpression Id. */
+  int INTEGER_LITERAL = 54;
+  /** RegularExpression Id. */
+  int IDENTIFIER = 55;
+  /** RegularExpression Id. */
+  int LETTER = 56;
+  /** RegularExpression Id. */
+  int DIGIT = 57;
 
   /** Lexical state. */
   int DEFAULT = 0;
@@ -109,15 +131,22 @@ public interface MiniJavaParserConstants {
     "\")\"",
     "\"[\"",
     "\"]\"",
+    "\"<\"",
+    "\">\"",
     "\"{\"",
     "\"}\"",
     "\";\"",
     "\".\"",
+    "\"->\"",
     "\"=\"",
-    "\"<\"",
+    "\"<=\"",
+    "\"!=\"",
     "\"+\"",
     "\"-\"",
-    "\"&\"",
+    "\"*\"",
+    "\"/\"",
+    "\"&&\"",
+    "\"||\"",
     "\"!\"",
     "\"boolean\"",
     "\"class\"",
@@ -139,12 +168,15 @@ public interface MiniJavaParserConstants {
     "\"true\"",
     "\"System.out.println\"",
     "\"void\"",
+    "\"#define\"",
+    "\"Function\"",
+    "\"import\"",
+    "\"java.util.function.Function\"",
     "<INTEGER_LITERAL>",
     "<IDENTIFIER>",
     "<LETTER>",
     "<DIGIT>",
     "\",\"",
-    "\"*\"",
   };
 
 }

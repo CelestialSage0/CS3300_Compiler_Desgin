@@ -6,14 +6,25 @@ package syntaxtree;
 
 /**
  * Grammar production:
- * f0 -> IfthenElseStatement()
- *       | IfthenStatement()
+ * f0 -> "import"
+ * f1 -> "java.util.function.Function"
+ * f2 -> ";"
  */
-public class IfStatement implements Node {
-   public NodeChoice f0;
+public class ImportFunction implements Node {
+   public NodeToken f0;
+   public NodeToken f1;
+   public NodeToken f2;
 
-   public IfStatement(NodeChoice n0) {
+   public ImportFunction(NodeToken n0, NodeToken n1, NodeToken n2) {
       f0 = n0;
+      f1 = n1;
+      f2 = n2;
+   }
+
+   public ImportFunction() {
+      f0 = new NodeToken("import");
+      f1 = new NodeToken("java.util.function.Function");
+      f2 = new NodeToken(";");
    }
 
    public void accept(visitor.Visitor v) {

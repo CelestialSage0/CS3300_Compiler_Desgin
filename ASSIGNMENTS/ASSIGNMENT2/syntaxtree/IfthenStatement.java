@@ -6,29 +6,33 @@ package syntaxtree;
 
 /**
  * Grammar production:
- * f0 -> ( ImportFunction() )?
- * f1 -> MainClass()
- * f2 -> ( TypeDeclaration() )*
- * f3 -> <EOF>
+ * f0 -> "if"
+ * f1 -> "("
+ * f2 -> Expression()
+ * f3 -> ")"
+ * f4 -> Statement()
  */
-public class Goal implements Node {
-   public NodeOptional f0;
-   public MainClass f1;
-   public NodeListOptional f2;
+public class IfthenStatement implements Node {
+   public NodeToken f0;
+   public NodeToken f1;
+   public Expression f2;
    public NodeToken f3;
+   public Statement f4;
 
-   public Goal(NodeOptional n0, MainClass n1, NodeListOptional n2, NodeToken n3) {
+   public IfthenStatement(NodeToken n0, NodeToken n1, Expression n2, NodeToken n3, Statement n4) {
       f0 = n0;
       f1 = n1;
       f2 = n2;
       f3 = n3;
+      f4 = n4;
    }
 
-   public Goal(NodeOptional n0, MainClass n1, NodeListOptional n2) {
-      f0 = n0;
-      f1 = n1;
-      f2 = n2;
-      f3 = new NodeToken("");
+   public IfthenStatement(Expression n0, Statement n1) {
+      f0 = new NodeToken("if");
+      f1 = new NodeToken("(");
+      f2 = n0;
+      f3 = new NodeToken(")");
+      f4 = n1;
    }
 
    public void accept(visitor.Visitor v) {

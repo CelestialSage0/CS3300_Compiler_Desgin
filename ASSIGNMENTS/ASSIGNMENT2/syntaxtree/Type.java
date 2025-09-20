@@ -10,6 +10,7 @@ package syntaxtree;
  *       | BooleanType()
  *       | IntegerType()
  *       | Identifier()
+ *       | LambdaType()
  */
 public class Type implements Node {
    public NodeChoice f0;

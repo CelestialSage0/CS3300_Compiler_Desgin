@@ -6,6 +6,7 @@ PARSER_BEGIN(MiniJavaParser)
   public class MiniJavaParser {}
 PARSER_END(MiniJavaParser)
 
+
 SKIP : /* WHITE SPACE */
 {
   " "
@@ -28,15 +29,22 @@ TOKEN :
 | < RPAREN: ")" >
 | < LSQPAREN: "[" >
 | < RSQPAREN: "]" >
+| < LT: "<" >
+| < GT: ">" >
 | < LBRACE: "{" >
 | < RBRACE: "}" >
 | < SEMICOLON: ";" >
 | < DOT: "." >
+| < ARROW: "->" >
 | < ASSIGN: "=" >
-| < LT: "<" >
+| < LE: "<=" >
+| < NE: "!=" >
 | < PLUS: "+" >
 | < MINUS: "-" >
-| < AND : "&" >   
+| < MULT: "*" >
+| < DIV: "/" >
+| < AND : "&&" >   
+| < OR : "||" >   
 | < NOT : "!" >   
 | < BOOLEAN: "boolean" >   
 | < CLASS: "class" >
@@ -58,6 +66,10 @@ TOKEN :
 | < TRUE: "true" >
 | < PRINT: "System.out.println" >
 | < VOID: "void" >         
+| < DEFINE: "#define" >
+| < FUNCTION: "Function" >
+| < IMPORT: "import" >
+| < JUFF: "java.util.function.Function">
 }
 
 TOKEN : /* LITERALS */
@@ -108,18 +120,24 @@ TOKEN : /* IDENTIFIERS */
   >
 }
 
-
-/************************************
+/*************************************
  * The MiniJava Grammar Starts Here *
- ************************************/
-
+ * Extended from the MiniJava grammar from UCLA
+ *************************************/
 
 void Goal() :
 {}
 {
+  (ImportFunction())?
   MainClass()
   ( TypeDeclaration() )*
   <EOF>
+}
+
+void ImportFunction():
+{}
+{
+"import" "java.util.function.Function" ";"
 }
 
 void MainClass() :
@@ -201,6 +219,8 @@ void Type() :
   IntegerType()
 |
   Identifier()     
+| 
+LambdaType()
 }
 
 void ArrayType() :
@@ -220,6 +240,13 @@ void IntegerType() :
 {
   "int"
 }
+
+void LambdaType() :
+{}
+{
+  "Function" "<" Identifier() "," Identifier() ">"
+}
+
 
 void Statement() :
 {}
@@ -260,9 +287,20 @@ void ArrayAssignmentStatement() :
 void IfStatement() :
 {}
 {
+  // Add if-then stmt as well
+  LOOKAHEAD(IfthenElseStatement()) IfthenElseStatement()
+  | IfthenStatement() 
+}
+void IfthenStatement() :
+{}
+{
+  "if" "(" Expression() ")" Statement() 
+}
+void IfthenElseStatement() :
+{}
+{
   "if" "(" Expression() ")" Statement() "else" Statement() 
 }
-
 void WhileStatement() :
 {}
 {
@@ -278,20 +316,29 @@ void PrintStatement() :
 void Expression() :
 {}
 {
-  LOOKAHEAD( PrimaryExpression() "&" )
+  LOOKAHEAD( PrimaryExpression() "||" )
+  OrExpression()
+|
+  LOOKAHEAD( PrimaryExpression() "&&" )
   AndExpression()
 |
-  LOOKAHEAD( PrimaryExpression() "<" )
+  LOOKAHEAD( PrimaryExpression() "<=" )
   CompareExpression()
 |
+  LOOKAHEAD( PrimaryExpression() "!=" )
+  neqExpression()
+|
   LOOKAHEAD( PrimaryExpression() "+" )
-  PlusExpression()
+  AddExpression()
 |
   LOOKAHEAD( PrimaryExpression() "-" )
   MinusExpression()
 |
   LOOKAHEAD( PrimaryExpression() "*" )
   TimesExpression()
+|
+  LOOKAHEAD( PrimaryExpression() "/" )
+  DivExpression()
 |
   LOOKAHEAD( PrimaryExpression() "[" )
   ArrayLookup()
@@ -302,22 +349,46 @@ void Expression() :
   LOOKAHEAD( PrimaryExpression() "." Identifier() "(" )
   MessageSend()
 | 
+  LOOKAHEAD("(" Identifier() ")" "->" )
+  LambdaExpression()
+| 
   PrimaryExpression()
 }
+
+void LambdaExpression() :
+{} 
+{
+  "(" Identifier() ")" "->" Expression()
+}
+
 
 void AndExpression() :
 {} 
 {
-  PrimaryExpression() "&" PrimaryExpression()
+  PrimaryExpression() "&&" PrimaryExpression()
 }
+
+void OrExpression() :
+{} 
+{
+  PrimaryExpression() "||" PrimaryExpression()
+}
+
 
 void CompareExpression() :
 {} 
 {
-  PrimaryExpression() "<" PrimaryExpression()
+  PrimaryExpression() "<=" PrimaryExpression()
 }
 
-void PlusExpression() :
+void neqExpression() :
+{} 
+{
+  PrimaryExpression() "!=" PrimaryExpression()
+}
+
+
+void AddExpression() :
 {}
 {
   PrimaryExpression() "+" PrimaryExpression()
@@ -333,6 +404,12 @@ void TimesExpression() :
 {}
 {
   PrimaryExpression() "*" PrimaryExpression()
+}
+
+void DivExpression() :
+{}
+{
+  PrimaryExpression() "/" PrimaryExpression()
 }
 
 void ArrayLookup() :
@@ -353,7 +430,6 @@ void MessageSend() :
   PrimaryExpression() "." Identifier() 
   "(" ( ExpressionList() )? ")"
 }
-
 void ExpressionList() :
 {}
 {
@@ -443,4 +519,3 @@ void BracketExpression() :
 {
   "(" Expression() ")"
 }
-

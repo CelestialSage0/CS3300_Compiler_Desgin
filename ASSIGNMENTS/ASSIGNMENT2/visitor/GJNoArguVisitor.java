@@ -27,11 +27,19 @@ public interface GJNoArguVisitor<R> {
    //
 
    /**
-    * f0 -> MainClass()
-    * f1 -> ( TypeDeclaration() )*
-    * f2 -> <EOF>
+    * f0 -> ( ImportFunction() )?
+    * f1 -> MainClass()
+    * f2 -> ( TypeDeclaration() )*
+    * f3 -> <EOF>
     */
    public R visit(Goal n);
+
+   /**
+    * f0 -> "import"
+    * f1 -> "java.util.function.Function"
+    * f2 -> ";"
+    */
+   public R visit(ImportFunction n);
 
    /**
     * f0 -> "class"
@@ -129,6 +137,7 @@ public interface GJNoArguVisitor<R> {
     *       | BooleanType()
     *       | IntegerType()
     *       | Identifier()
+    *       | LambdaType()
     */
    public R visit(Type n);
 
@@ -148,6 +157,16 @@ public interface GJNoArguVisitor<R> {
     * f0 -> "int"
     */
    public R visit(IntegerType n);
+
+   /**
+    * f0 -> "Function"
+    * f1 -> "<"
+    * f2 -> Identifier()
+    * f3 -> ","
+    * f4 -> Identifier()
+    * f5 -> ">"
+    */
+   public R visit(LambdaType n);
 
    /**
     * f0 -> Block()
@@ -186,6 +205,21 @@ public interface GJNoArguVisitor<R> {
    public R visit(ArrayAssignmentStatement n);
 
    /**
+    * f0 -> IfthenElseStatement()
+    *       | IfthenStatement()
+    */
+   public R visit(IfStatement n);
+
+   /**
+    * f0 -> "if"
+    * f1 -> "("
+    * f2 -> Expression()
+    * f3 -> ")"
+    * f4 -> Statement()
+    */
+   public R visit(IfthenStatement n);
+
+   /**
     * f0 -> "if"
     * f1 -> "("
     * f2 -> Expression()
@@ -194,7 +228,7 @@ public interface GJNoArguVisitor<R> {
     * f5 -> "else"
     * f6 -> Statement()
     */
-   public R visit(IfStatement n);
+   public R visit(IfthenElseStatement n);
 
    /**
     * f0 -> "while"
@@ -215,38 +249,65 @@ public interface GJNoArguVisitor<R> {
    public R visit(PrintStatement n);
 
    /**
-    * f0 -> AndExpression()
+    * f0 -> OrExpression()
+    *       | AndExpression()
     *       | CompareExpression()
-    *       | PlusExpression()
+    *       | neqExpression()
+    *       | AddExpression()
     *       | MinusExpression()
     *       | TimesExpression()
+    *       | DivExpression()
     *       | ArrayLookup()
     *       | ArrayLength()
     *       | MessageSend()
+    *       | LambdaExpression()
     *       | PrimaryExpression()
     */
    public R visit(Expression n);
 
    /**
+    * f0 -> "("
+    * f1 -> Identifier()
+    * f2 -> ")"
+    * f3 -> "->"
+    * f4 -> Expression()
+    */
+   public R visit(LambdaExpression n);
+
+   /**
     * f0 -> PrimaryExpression()
-    * f1 -> "&"
+    * f1 -> "&&"
     * f2 -> PrimaryExpression()
     */
    public R visit(AndExpression n);
 
    /**
     * f0 -> PrimaryExpression()
-    * f1 -> "<"
+    * f1 -> "||"
+    * f2 -> PrimaryExpression()
+    */
+   public R visit(OrExpression n);
+
+   /**
+    * f0 -> PrimaryExpression()
+    * f1 -> "<="
     * f2 -> PrimaryExpression()
     */
    public R visit(CompareExpression n);
 
    /**
     * f0 -> PrimaryExpression()
+    * f1 -> "!="
+    * f2 -> PrimaryExpression()
+    */
+   public R visit(neqExpression n);
+
+   /**
+    * f0 -> PrimaryExpression()
     * f1 -> "+"
     * f2 -> PrimaryExpression()
     */
-   public R visit(PlusExpression n);
+   public R visit(AddExpression n);
 
    /**
     * f0 -> PrimaryExpression()
@@ -261,6 +322,13 @@ public interface GJNoArguVisitor<R> {
     * f2 -> PrimaryExpression()
     */
    public R visit(TimesExpression n);
+
+   /**
+    * f0 -> PrimaryExpression()
+    * f1 -> "/"
+    * f2 -> PrimaryExpression()
+    */
+   public R visit(DivExpression n);
 
    /**
     * f0 -> PrimaryExpression()

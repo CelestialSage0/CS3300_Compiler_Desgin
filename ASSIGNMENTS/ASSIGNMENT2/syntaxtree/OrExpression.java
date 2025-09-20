@@ -7,23 +7,23 @@ package syntaxtree;
 /**
  * Grammar production:
  * f0 -> PrimaryExpression()
- * f1 -> "+"
+ * f1 -> "||"
  * f2 -> PrimaryExpression()
  */
-public class PlusExpression implements Node {
+public class OrExpression implements Node {
    public PrimaryExpression f0;
    public NodeToken f1;
    public PrimaryExpression f2;
 
-   public PlusExpression(PrimaryExpression n0, NodeToken n1, PrimaryExpression n2) {
+   public OrExpression(PrimaryExpression n0, NodeToken n1, PrimaryExpression n2) {
       f0 = n0;
       f1 = n1;
       f2 = n2;
    }
 
-   public PlusExpression(PrimaryExpression n0, PrimaryExpression n1) {
+   public OrExpression(PrimaryExpression n0, PrimaryExpression n1) {
       f0 = n0;
-      f1 = new NodeToken("+");
+      f1 = new NodeToken("||");
       f2 = n1;
    }
 

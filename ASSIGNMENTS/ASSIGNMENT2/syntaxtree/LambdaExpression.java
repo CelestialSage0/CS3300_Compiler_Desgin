@@ -6,29 +6,33 @@ package syntaxtree;
 
 /**
  * Grammar production:
- * f0 -> ( ImportFunction() )?
- * f1 -> MainClass()
- * f2 -> ( TypeDeclaration() )*
- * f3 -> <EOF>
+ * f0 -> "("
+ * f1 -> Identifier()
+ * f2 -> ")"
+ * f3 -> "->"
+ * f4 -> Expression()
  */
-public class Goal implements Node {
-   public NodeOptional f0;
-   public MainClass f1;
-   public NodeListOptional f2;
+public class LambdaExpression implements Node {
+   public NodeToken f0;
+   public Identifier f1;
+   public NodeToken f2;
    public NodeToken f3;
+   public Expression f4;
 
-   public Goal(NodeOptional n0, MainClass n1, NodeListOptional n2, NodeToken n3) {
+   public LambdaExpression(NodeToken n0, Identifier n1, NodeToken n2, NodeToken n3, Expression n4) {
       f0 = n0;
       f1 = n1;
       f2 = n2;
       f3 = n3;
+      f4 = n4;
    }
 
-   public Goal(NodeOptional n0, MainClass n1, NodeListOptional n2) {
-      f0 = n0;
-      f1 = n1;
-      f2 = n2;
-      f3 = new NodeToken("");
+   public LambdaExpression(Identifier n0, Expression n1) {
+      f0 = new NodeToken("(");
+      f1 = n0;
+      f2 = new NodeToken(")");
+      f3 = new NodeToken("->");
+      f4 = n1;
    }
 
    public void accept(visitor.Visitor v) {

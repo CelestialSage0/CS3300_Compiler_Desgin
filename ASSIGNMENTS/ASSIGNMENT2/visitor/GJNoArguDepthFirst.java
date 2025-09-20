@@ -62,11 +62,26 @@ public class GJNoArguDepthFirst<R> implements GJNoArguVisitor<R> {
    //
 
    /**
-    * f0 -> MainClass()
-    * f1 -> ( TypeDeclaration() )*
-    * f2 -> <EOF>
+    * f0 -> ( ImportFunction() )?
+    * f1 -> MainClass()
+    * f2 -> ( TypeDeclaration() )*
+    * f3 -> <EOF>
     */
    public R visit(Goal n) {
+      R _ret=null;
+      n.f0.accept(this);
+      n.f1.accept(this);
+      n.f2.accept(this);
+      n.f3.accept(this);
+      return _ret;
+   }
+
+   /**
+    * f0 -> "import"
+    * f1 -> "java.util.function.Function"
+    * f2 -> ";"
+    */
+   public R visit(ImportFunction n) {
       R _ret=null;
       n.f0.accept(this);
       n.f1.accept(this);
@@ -251,6 +266,7 @@ public class GJNoArguDepthFirst<R> implements GJNoArguVisitor<R> {
     *       | BooleanType()
     *       | IntegerType()
     *       | Identifier()
+    *       | LambdaType()
     */
    public R visit(Type n) {
       R _ret=null;
@@ -286,6 +302,25 @@ public class GJNoArguDepthFirst<R> implements GJNoArguVisitor<R> {
    public R visit(IntegerType n) {
       R _ret=null;
       n.f0.accept(this);
+      return _ret;
+   }
+
+   /**
+    * f0 -> "Function"
+    * f1 -> "<"
+    * f2 -> Identifier()
+    * f3 -> ","
+    * f4 -> Identifier()
+    * f5 -> ">"
+    */
+   public R visit(LambdaType n) {
+      R _ret=null;
+      n.f0.accept(this);
+      n.f1.accept(this);
+      n.f2.accept(this);
+      n.f3.accept(this);
+      n.f4.accept(this);
+      n.f5.accept(this);
       return _ret;
    }
 
@@ -353,6 +388,33 @@ public class GJNoArguDepthFirst<R> implements GJNoArguVisitor<R> {
    }
 
    /**
+    * f0 -> IfthenElseStatement()
+    *       | IfthenStatement()
+    */
+   public R visit(IfStatement n) {
+      R _ret=null;
+      n.f0.accept(this);
+      return _ret;
+   }
+
+   /**
+    * f0 -> "if"
+    * f1 -> "("
+    * f2 -> Expression()
+    * f3 -> ")"
+    * f4 -> Statement()
+    */
+   public R visit(IfthenStatement n) {
+      R _ret=null;
+      n.f0.accept(this);
+      n.f1.accept(this);
+      n.f2.accept(this);
+      n.f3.accept(this);
+      n.f4.accept(this);
+      return _ret;
+   }
+
+   /**
     * f0 -> "if"
     * f1 -> "("
     * f2 -> Expression()
@@ -361,7 +423,7 @@ public class GJNoArguDepthFirst<R> implements GJNoArguVisitor<R> {
     * f5 -> "else"
     * f6 -> Statement()
     */
-   public R visit(IfStatement n) {
+   public R visit(IfthenElseStatement n) {
       R _ret=null;
       n.f0.accept(this);
       n.f1.accept(this);
@@ -408,14 +470,18 @@ public class GJNoArguDepthFirst<R> implements GJNoArguVisitor<R> {
    }
 
    /**
-    * f0 -> AndExpression()
+    * f0 -> OrExpression()
+    *       | AndExpression()
     *       | CompareExpression()
-    *       | PlusExpression()
+    *       | neqExpression()
+    *       | AddExpression()
     *       | MinusExpression()
     *       | TimesExpression()
+    *       | DivExpression()
     *       | ArrayLookup()
     *       | ArrayLength()
     *       | MessageSend()
+    *       | LambdaExpression()
     *       | PrimaryExpression()
     */
    public R visit(Expression n) {
@@ -425,8 +491,25 @@ public class GJNoArguDepthFirst<R> implements GJNoArguVisitor<R> {
    }
 
    /**
+    * f0 -> "("
+    * f1 -> Identifier()
+    * f2 -> ")"
+    * f3 -> "->"
+    * f4 -> Expression()
+    */
+   public R visit(LambdaExpression n) {
+      R _ret=null;
+      n.f0.accept(this);
+      n.f1.accept(this);
+      n.f2.accept(this);
+      n.f3.accept(this);
+      n.f4.accept(this);
+      return _ret;
+   }
+
+   /**
     * f0 -> PrimaryExpression()
-    * f1 -> "&"
+    * f1 -> "&&"
     * f2 -> PrimaryExpression()
     */
    public R visit(AndExpression n) {
@@ -439,7 +522,20 @@ public class GJNoArguDepthFirst<R> implements GJNoArguVisitor<R> {
 
    /**
     * f0 -> PrimaryExpression()
-    * f1 -> "<"
+    * f1 -> "||"
+    * f2 -> PrimaryExpression()
+    */
+   public R visit(OrExpression n) {
+      R _ret=null;
+      n.f0.accept(this);
+      n.f1.accept(this);
+      n.f2.accept(this);
+      return _ret;
+   }
+
+   /**
+    * f0 -> PrimaryExpression()
+    * f1 -> "<="
     * f2 -> PrimaryExpression()
     */
    public R visit(CompareExpression n) {
@@ -452,10 +548,23 @@ public class GJNoArguDepthFirst<R> implements GJNoArguVisitor<R> {
 
    /**
     * f0 -> PrimaryExpression()
+    * f1 -> "!="
+    * f2 -> PrimaryExpression()
+    */
+   public R visit(neqExpression n) {
+      R _ret=null;
+      n.f0.accept(this);
+      n.f1.accept(this);
+      n.f2.accept(this);
+      return _ret;
+   }
+
+   /**
+    * f0 -> PrimaryExpression()
     * f1 -> "+"
     * f2 -> PrimaryExpression()
     */
-   public R visit(PlusExpression n) {
+   public R visit(AddExpression n) {
       R _ret=null;
       n.f0.accept(this);
       n.f1.accept(this);
@@ -482,6 +591,19 @@ public class GJNoArguDepthFirst<R> implements GJNoArguVisitor<R> {
     * f2 -> PrimaryExpression()
     */
    public R visit(TimesExpression n) {
+      R _ret=null;
+      n.f0.accept(this);
+      n.f1.accept(this);
+      n.f2.accept(this);
+      return _ret;
+   }
+
+   /**
+    * f0 -> PrimaryExpression()
+    * f1 -> "/"
+    * f2 -> PrimaryExpression()
+    */
+   public R visit(DivExpression n) {
       R _ret=null;
       n.f0.accept(this);
       n.f1.accept(this);

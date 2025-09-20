@@ -27,11 +27,19 @@ public interface GJVoidVisitor<A> {
    //
 
    /**
-    * f0 -> MainClass()
-    * f1 -> ( TypeDeclaration() )*
-    * f2 -> <EOF>
+    * f0 -> ( ImportFunction() )?
+    * f1 -> MainClass()
+    * f2 -> ( TypeDeclaration() )*
+    * f3 -> <EOF>
     */
    public void visit(Goal n, A argu);
+
+   /**
+    * f0 -> "import"
+    * f1 -> "java.util.function.Function"
+    * f2 -> ";"
+    */
+   public void visit(ImportFunction n, A argu);
 
    /**
     * f0 -> "class"
@@ -129,6 +137,7 @@ public interface GJVoidVisitor<A> {
     *       | BooleanType()
     *       | IntegerType()
     *       | Identifier()
+    *       | LambdaType()
     */
    public void visit(Type n, A argu);
 
@@ -148,6 +157,16 @@ public interface GJVoidVisitor<A> {
     * f0 -> "int"
     */
    public void visit(IntegerType n, A argu);
+
+   /**
+    * f0 -> "Function"
+    * f1 -> "<"
+    * f2 -> Identifier()
+    * f3 -> ","
+    * f4 -> Identifier()
+    * f5 -> ">"
+    */
+   public void visit(LambdaType n, A argu);
 
    /**
     * f0 -> Block()
@@ -186,6 +205,21 @@ public interface GJVoidVisitor<A> {
    public void visit(ArrayAssignmentStatement n, A argu);
 
    /**
+    * f0 -> IfthenElseStatement()
+    *       | IfthenStatement()
+    */
+   public void visit(IfStatement n, A argu);
+
+   /**
+    * f0 -> "if"
+    * f1 -> "("
+    * f2 -> Expression()
+    * f3 -> ")"
+    * f4 -> Statement()
+    */
+   public void visit(IfthenStatement n, A argu);
+
+   /**
     * f0 -> "if"
     * f1 -> "("
     * f2 -> Expression()
@@ -194,7 +228,7 @@ public interface GJVoidVisitor<A> {
     * f5 -> "else"
     * f6 -> Statement()
     */
-   public void visit(IfStatement n, A argu);
+   public void visit(IfthenElseStatement n, A argu);
 
    /**
     * f0 -> "while"
@@ -215,38 +249,65 @@ public interface GJVoidVisitor<A> {
    public void visit(PrintStatement n, A argu);
 
    /**
-    * f0 -> AndExpression()
+    * f0 -> OrExpression()
+    *       | AndExpression()
     *       | CompareExpression()
-    *       | PlusExpression()
+    *       | neqExpression()
+    *       | AddExpression()
     *       | MinusExpression()
     *       | TimesExpression()
+    *       | DivExpression()
     *       | ArrayLookup()
     *       | ArrayLength()
     *       | MessageSend()
+    *       | LambdaExpression()
     *       | PrimaryExpression()
     */
    public void visit(Expression n, A argu);
 
    /**
+    * f0 -> "("
+    * f1 -> Identifier()
+    * f2 -> ")"
+    * f3 -> "->"
+    * f4 -> Expression()
+    */
+   public void visit(LambdaExpression n, A argu);
+
+   /**
     * f0 -> PrimaryExpression()
-    * f1 -> "&"
+    * f1 -> "&&"
     * f2 -> PrimaryExpression()
     */
    public void visit(AndExpression n, A argu);
 
    /**
     * f0 -> PrimaryExpression()
-    * f1 -> "<"
+    * f1 -> "||"
+    * f2 -> PrimaryExpression()
+    */
+   public void visit(OrExpression n, A argu);
+
+   /**
+    * f0 -> PrimaryExpression()
+    * f1 -> "<="
     * f2 -> PrimaryExpression()
     */
    public void visit(CompareExpression n, A argu);
 
    /**
     * f0 -> PrimaryExpression()
+    * f1 -> "!="
+    * f2 -> PrimaryExpression()
+    */
+   public void visit(neqExpression n, A argu);
+
+   /**
+    * f0 -> PrimaryExpression()
     * f1 -> "+"
     * f2 -> PrimaryExpression()
     */
-   public void visit(PlusExpression n, A argu);
+   public void visit(AddExpression n, A argu);
 
    /**
     * f0 -> PrimaryExpression()
@@ -261,6 +322,13 @@ public interface GJVoidVisitor<A> {
     * f2 -> PrimaryExpression()
     */
    public void visit(TimesExpression n, A argu);
+
+   /**
+    * f0 -> PrimaryExpression()
+    * f1 -> "/"
+    * f2 -> PrimaryExpression()
+    */
+   public void visit(DivExpression n, A argu);
 
    /**
     * f0 -> PrimaryExpression()

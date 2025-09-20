@@ -6,14 +6,18 @@ package syntaxtree;
 
 /**
  * Grammar production:
- * f0 -> AndExpression()
+ * f0 -> OrExpression()
+ *       | AndExpression()
  *       | CompareExpression()
- *       | PlusExpression()
+ *       | neqExpression()
+ *       | AddExpression()
  *       | MinusExpression()
  *       | TimesExpression()
+ *       | DivExpression()
  *       | ArrayLookup()
  *       | ArrayLength()
  *       | MessageSend()
+ *       | LambdaExpression()
  *       | PrimaryExpression()
  */
 public class Expression implements Node {
