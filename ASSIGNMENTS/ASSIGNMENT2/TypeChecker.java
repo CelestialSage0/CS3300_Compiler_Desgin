@@ -1,5 +1,6 @@
+package visitor;
+
 import syntaxtree.*;
-import visitor.GJDepthFirst;
 import java.util.*;
 
 public class TypeChecker extends GJDepthFirst<String, TypeChecker.Context> {

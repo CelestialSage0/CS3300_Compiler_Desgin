@@ -75,6 +75,13 @@ public class SymbolTableBuilder implements GJNoArguVisitor<String> {
             this.methods = new HashMap<>();
             this.parent = null;
         }
+
+        public ClassInfo(String name, String parent) {
+            this.name = name;
+            this.fields = new HashMap<>();
+            this.methods = new HashMap<>();
+            this.parent = parent;
+        }
     }
 
     public static class MethodInfo {
@@ -95,13 +102,18 @@ public class SymbolTableBuilder implements GJNoArguVisitor<String> {
         public HashMap<String, ClassInfo> classes;
         public String mainClassName;
         public boolean hasImport;
+
+        public SymbolTable() {
+            classes = new HashMap<>();
+            hasImport = false;
+        }
     }
 
-    public SymbolTable ST;
+    public SymbolTable ST = new SymbolTable();
     public ClassInfo currClass;
     public MethodInfo currMethod;
-    boolean inMethod = false;
-    boolean Error = false;
+    public boolean inMethod = false;
+    public boolean Error = false;
 
     /**
      * f0 -> ( ImportFunction() )?
@@ -111,7 +123,6 @@ public class SymbolTableBuilder implements GJNoArguVisitor<String> {
      */
     public String visit(Goal n) {
         String _ret = null;
-        ST.hasImport = false;
         n.f0.accept(this);
         n.f1.accept(this);
         n.f2.accept(this);
@@ -157,13 +168,12 @@ public class SymbolTableBuilder implements GJNoArguVisitor<String> {
         n.f0.accept(this);
 
         String className = n.f1.accept(this);
-        if (ST.classes.containsKey(className)) {
-            Error = true;
-            return _ret;
-        }
+        // if (ST.classes.containsKey(className)) {
+        // Error = true;
+        // return _ret;
+        // }
         ST.mainClassName = className;
         currClass = new ClassInfo(className);
-        ST.classes.put(className, currClass);
 
         n.f2.accept(this);
         n.f3.accept(this);
@@ -186,6 +196,7 @@ public class SymbolTableBuilder implements GJNoArguVisitor<String> {
         n.f15.accept(this);
         n.f16.accept(this);
 
+        ST.classes.put(className, currClass);
         currClass = null;
         currMethod = null;
         return _ret;
@@ -213,10 +224,11 @@ public class SymbolTableBuilder implements GJNoArguVisitor<String> {
         String _ret = null;
         n.f0.accept(this);
         String className = n.f1.accept(this);
-        if (ST.classes.containsKey(className)) {
-            Error = true;
-            return _ret;
-        }
+        // if (ST.classes.containsKey(className)) {
+        // Error = true;
+        // return _ret;
+        // }
+        currClass = new ClassInfo(className);
         ST.classes.put(className, currClass);
 
         n.f2.accept(this);
@@ -246,10 +258,13 @@ public class SymbolTableBuilder implements GJNoArguVisitor<String> {
         n.f2.accept(this);
         String parentName = n.f3.accept(this);
 
-        if (ST.classes.containsKey(className) || !ST.classes.containsKey(parentName)) {
-            Error = true;
-            return _ret;
-        }
+        // if (ST.classes.containsKey(className) || !ST.classes.containsKey(parentName))
+        // {
+        // Error = true;
+        // return _ret;
+        // }
+        currClass = new ClassInfo(className, parentName);
+        ST.classes.put(className, currClass);
 
         n.f4.accept(this);
         n.f5.accept(this);
@@ -295,8 +310,15 @@ public class SymbolTableBuilder implements GJNoArguVisitor<String> {
      */
     public String visit(MethodDeclaration n) {
         String _ret = null;
-        n.f0.accept(this);
-        n.f1.accept(this);
+        String type = n.f0.accept(this);
+        String name = n.f1.accept(this);
+        MethodInfo method = new MethodInfo(name, type);
+        // if (!currClass.methods.containsKey(name))
+        // currMethod = method;
+        // else {
+        // Error = true;
+        // return null;
+        // }
         n.f2.accept(this);
         n.f3.accept(this);
         n.f4.accept(this);
@@ -308,6 +330,8 @@ public class SymbolTableBuilder implements GJNoArguVisitor<String> {
         n.f10.accept(this);
         n.f11.accept(this);
         n.f12.accept(this);
+        currClass.methods.put(name, method);
+        currMethod = null;
         return _ret;
     }
 
@@ -328,8 +352,14 @@ public class SymbolTableBuilder implements GJNoArguVisitor<String> {
      */
     public String visit(FormalParameter n) {
         String _ret = null;
-        n.f0.accept(this);
-        n.f1.accept(this);
+        String type = n.f0.accept(this);
+        String name = n.f1.accept(this);
+        // if (!currMethod.args.containsKey(name))
+        // currMethod.args.put(name, type);
+        // else {
+        // Error = true;
+        // return null;
+        // }
         return _ret;
     }
 
@@ -363,29 +393,29 @@ public class SymbolTableBuilder implements GJNoArguVisitor<String> {
      * f2 -> "]"
      */
     public String visit(ArrayType n) {
-        String _ret = null;
+        // String _ret = null;
         n.f0.accept(this);
         n.f1.accept(this);
         n.f2.accept(this);
-        return _ret;
+        return "int[]";
     }
 
     /**
      * f0 -> "boolean"
      */
     public String visit(BooleanType n) {
-        String _ret = null;
+        // String _ret = null;
         n.f0.accept(this);
-        return _ret;
+        return "boolean";
     }
 
     /**
      * f0 -> "int"
      */
     public String visit(IntegerType n) {
-        String _ret = null;
+        // String _ret = null;
         n.f0.accept(this);
-        return _ret;
+        return "int";
     }
 
     /**
@@ -397,14 +427,18 @@ public class SymbolTableBuilder implements GJNoArguVisitor<String> {
      * f5 -> ">"
      */
     public String visit(LambdaType n) {
-        String _ret = null;
+        // String _ret = null;
+        // if (!ST.hasImport) {
+        // Error = true;
+        // return null;
+        // }
         n.f0.accept(this);
         n.f1.accept(this);
-        n.f2.accept(this);
+        String id1 = n.f2.accept(this);
         n.f3.accept(this);
-        n.f4.accept(this);
+        String id2 = n.f4.accept(this);
         n.f5.accept(this);
-        return _ret;
+        return "Function<" + id1 + "," + id2 + ">";
     }
 
     /**
@@ -442,7 +476,19 @@ public class SymbolTableBuilder implements GJNoArguVisitor<String> {
      */
     public String visit(AssignmentStatement n) {
         String _ret = null;
-        n.f0.accept(this);
+        String var = n.f0.accept(this);
+        // if (inMethod) {
+        // if (!currMethod.args.containsKey(var) && !currMethod.vars.containsKey(var)) {
+        // Error = true;
+        // return null;
+        // }
+        // } else {
+        // if (!currClass.fields.containsKey(var) && !currClass.fields.containsKey(var))
+        // {
+        // Error = true;
+        // return null;
+        // }
+        // }
         n.f1.accept(this);
         n.f2.accept(this);
         n.f3.accept(this);
@@ -460,7 +506,19 @@ public class SymbolTableBuilder implements GJNoArguVisitor<String> {
      */
     public String visit(ArrayAssignmentStatement n) {
         String _ret = null;
-        n.f0.accept(this);
+        String var = n.f0.accept(this);
+        // if (inMethod) {
+        // if (!currMethod.args.containsKey(var) && !currMethod.vars.containsKey(var)) {
+        // Error = true;
+        // return null;
+        // }
+        // } else {
+        // if (!currClass.fields.containsKey(var) && !currClass.fields.containsKey(var))
+        // {
+        // Error = true;
+        // return null;
+        // }
+        // }
         n.f1.accept(this);
         n.f2.accept(this);
         n.f3.accept(this);
@@ -583,8 +641,20 @@ public class SymbolTableBuilder implements GJNoArguVisitor<String> {
     public String visit(LambdaExpression n) {
         String _ret = null;
         n.f0.accept(this);
-        n.f1.accept(this);
+        String var = n.f1.accept(this);
         n.f2.accept(this);
+        // if (inMethod) {
+        // if (!currMethod.args.containsKey(var) && !currMethod.vars.containsKey(var)) {
+        // Error = true;
+        // return null;
+        // }
+        // } else {
+        // if (!currClass.fields.containsKey(var) && !currClass.fields.containsKey(var))
+        // {
+        // Error = true;
+        // return null;
+        // }
+        // }
         n.f3.accept(this);
         n.f4.accept(this);
         return _ret;
@@ -734,7 +804,19 @@ public class SymbolTableBuilder implements GJNoArguVisitor<String> {
         String _ret = null;
         n.f0.accept(this);
         n.f1.accept(this);
-        n.f2.accept(this);
+        String var = n.f2.accept(this);
+        // if (inMethod) {
+        // if (!currMethod.args.containsKey(var) && !currMethod.vars.containsKey(var)) {
+        // Error = true;
+        // return null;
+        // }
+        // } else {
+        // if (!currClass.fields.containsKey(var) && !currClass.fields.containsKey(var))
+        // {
+        // Error = true;
+        // return null;
+        // }
+        // }
         n.f3.accept(this);
         n.f4.accept(this);
         n.f5.accept(this);
@@ -784,9 +866,9 @@ public class SymbolTableBuilder implements GJNoArguVisitor<String> {
      * f0 -> <INTEGER_LITERAL>
      */
     public String visit(IntegerLiteral n) {
-        String _ret = null;
-        n.f0.accept(this);
-        return _ret;
+        // String _ret = null;
+        String var = n.f0.accept(this);
+        return var;
     }
 
     /**
@@ -811,9 +893,9 @@ public class SymbolTableBuilder implements GJNoArguVisitor<String> {
      * f0 -> <IDENTIFIER>
      */
     public String visit(Identifier n) {
-        String _ret = null;
-        n.f0.accept(this);
-        return _ret;
+        // String _ret = null;
+        String var = n.f0.accept(this);
+        return var;
     }
 
     /**
@@ -851,7 +933,19 @@ public class SymbolTableBuilder implements GJNoArguVisitor<String> {
     public String visit(AllocationExpression n) {
         String _ret = null;
         n.f0.accept(this);
-        n.f1.accept(this);
+        String var = n.f1.accept(this);
+        // if (inMethod) {
+        // if (!currMethod.args.containsKey(var) && !currMethod.vars.containsKey(var)) {
+        // Error = true;
+        // return null;
+        // }
+        // } else {
+        // if (!currClass.fields.containsKey(var) && !currClass.fields.containsKey(var))
+        // {
+        // Error = true;
+        // return null;
+        // }
+        // }
         n.f2.accept(this);
         n.f3.accept(this);
         return _ret;

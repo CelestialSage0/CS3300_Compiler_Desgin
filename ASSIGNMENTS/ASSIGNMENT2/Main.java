@@ -10,10 +10,14 @@ public class Main {
 
             System.out.println("Program parsed successfully");
 
-            DepthFirstVisitor v = new DepthFirstVisitor();
+            SymbolTableBuilder v = new SymbolTableBuilder();
             // create a visitor.
 
             root.accept(v);
+            if (v.Error) {
+                System.out.println("Symbol not found");
+                return;
+            }
         } catch (ParseException e) {
             System.out.println(e.toString());
         }
