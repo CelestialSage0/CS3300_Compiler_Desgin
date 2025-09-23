@@ -1,14 +1,14 @@
 import syntaxtree.*;
 import visitor.*;
 
-public class Main {
+public class P2 {
     public static void main(String[] args) {
         try {
             Goal root = new MiniJavaParser(System.in).Goal();
             // Invoke the parser, match the Goal production and return the
             // syntax tree.
 
-            System.out.println("Program parsed successfully");
+            // System.out.println("Program parsed successfully");
 
             SymbolTableBuilder v = new SymbolTableBuilder();
             // create a visitor.
@@ -29,12 +29,13 @@ public class Main {
 
             try {
                 root.accept(typeChecker, typeChecker.currScope);
-                System.out.println("Typechecked successfully");
+                System.out.println("Program type checked successfully");
             } catch (TypeChecker.SymbolError e) {
                 System.out.println(e.getMessage());
                 return;
             } catch (TypeChecker.TypeError e) {
                 System.out.println(e.getMessage());
+                // System.out.println(e.getClass());
                 return;
             }
         } catch (ParseException e) {
