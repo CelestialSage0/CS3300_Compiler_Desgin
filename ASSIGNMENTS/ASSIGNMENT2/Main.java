@@ -14,8 +14,27 @@ public class Main {
             // create a visitor.
 
             root.accept(v);
-            if (v.Error) {
-                System.out.println("Symbol not found");
+            // if (v.Error) {
+            // System.out.println("Symbol not found");
+            // return;
+            // }
+            // for (Map.Entry<String, ClassInfo> i : v.ST.classes.entrySet()) {
+            // System.out.println(i.getKey());
+            // ClassInfo c1 = i.getValue();
+            // for (Map.Entry<String, MethodInfo> j : c1.methods.entrySet()) {
+            // System.out.println(j.getValue().name);
+            // }
+            // }
+            TypeChecker typeChecker = new TypeChecker(v.ST);
+
+            try {
+                root.accept(typeChecker, typeChecker.currScope);
+                System.out.println("Typechecked successfully");
+            } catch (TypeChecker.SymbolError e) {
+                System.out.println(e.getMessage());
+                return;
+            } catch (TypeChecker.TypeError e) {
+                System.out.println(e.getMessage());
                 return;
             }
         } catch (ParseException e) {
