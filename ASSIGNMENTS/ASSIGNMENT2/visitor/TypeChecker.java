@@ -182,13 +182,13 @@ public class TypeChecker implements GJVisitor<String, TypeChecker.Scope> {
                     flag = true;
                     break;
                 }
-
             }
         }
         if (var.startsWith("Function<"))
             return var;
-        if (!flag)
+        if (!flag) {
             throw new SymbolError("Symbol not found");
+        }
         return null;
     }
 
@@ -513,10 +513,10 @@ public class TypeChecker implements GJVisitor<String, TypeChecker.Scope> {
         n.f3.accept(this, argu);
         String type2 = n.f4.accept(this, argu);
         n.f5.accept(this, argu);
-        if (!currScope.currVars.peek().containsKey(type1)) {
+        if (!type1.equals("int") && !type1.equals("boolean") && !ST.classes.containsKey(type1)) {
             throw new SymbolError("Symbol not found");
         }
-        if (!currScope.currVars.peek().containsKey(type2)) {
+        if (!type1.equals("int") && !type1.equals("boolean") && !ST.classes.containsKey(type1)) {
             throw new SymbolError("Symbol not found");
         }
         return "Function<" + getVarType(type1, currScope.currVars.peek()) + ","
@@ -744,6 +744,7 @@ public class TypeChecker implements GJVisitor<String, TypeChecker.Scope> {
     public String visit(LambdaExpression n, Scope argu) {
         n.f0.accept(this, argu);
         String LambdaType = lambda;
+        System.out.println(lambda);
         String type1 = LambdaType.substring(9, LambdaType.indexOf(','));
         String type2 = LambdaType.substring(LambdaType.indexOf(',') + 1, LambdaType.indexOf('>'));
         type1 = getVarType(type1, currScope.currVars.peek());
@@ -1151,7 +1152,11 @@ public class TypeChecker implements GJVisitor<String, TypeChecker.Scope> {
         String type = n.f1.accept(this, argu);
         n.f2.accept(this, argu);
         n.f3.accept(this, argu);
+        if (type.equals("int") || type.equals("boolean") || type.equals("Integer") || type.equals("Bboolean")) {
+            throw new TypeError("Type error");
+        }
         if (!ST.classes.containsKey(type)) {
+
             throw new SymbolError("Symbol not found");
         }
         return type;
