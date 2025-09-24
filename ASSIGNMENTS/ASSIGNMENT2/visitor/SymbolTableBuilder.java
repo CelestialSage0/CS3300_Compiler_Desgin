@@ -482,18 +482,6 @@ public class SymbolTableBuilder implements GJNoArguVisitor<String> {
     public String visit(AssignmentStatement n) {
         String _ret = null;
         String var = n.f0.accept(this);
-        // if (inMethod) {
-        // if (!currMethod.args.containsKey(var) && !currMethod.vars.containsKey(var)) {
-        // Error = true;
-        // return null;
-        // }
-        // } else {
-        // if (!currClass.fields.containsKey(var) && !currClass.fields.containsKey(var))
-        // {
-        // Error = true;
-        // return null;
-        // }
-        // }
         n.f1.accept(this);
         n.f2.accept(this);
         n.f3.accept(this);
@@ -647,19 +635,11 @@ public class SymbolTableBuilder implements GJNoArguVisitor<String> {
         String _ret = null;
         n.f0.accept(this);
         String var = n.f1.accept(this);
+        if (currMethod.args.containsKey(var) || currMethod.vars.containsKey(var)) {
+            throw new TypeError("Type error");
+        }
+        currMethod.vars.put(var, null);
         n.f2.accept(this);
-        // if (inMethod) {
-        // if (!currMethod.args.containsKey(var) && !currMethod.vars.containsKey(var)) {
-        // Error = true;
-        // return null;
-        // }
-        // } else {
-        // if (!currClass.fields.containsKey(var) && !currClass.fields.containsKey(var))
-        // {
-        // Error = true;
-        // return null;
-        // }
-        // }
         n.f3.accept(this);
         n.f4.accept(this);
         return _ret;
@@ -810,18 +790,6 @@ public class SymbolTableBuilder implements GJNoArguVisitor<String> {
         n.f0.accept(this);
         n.f1.accept(this);
         String var = n.f2.accept(this);
-        // if (inMethod) {
-        // if (!currMethod.args.containsKey(var) && !currMethod.vars.containsKey(var)) {
-        // Error = true;
-        // return null;
-        // }
-        // } else {
-        // if (!currClass.fields.containsKey(var) && !currClass.fields.containsKey(var))
-        // {
-        // Error = true;
-        // return null;
-        // }
-        // }
         n.f3.accept(this);
         n.f4.accept(this);
         n.f5.accept(this);
