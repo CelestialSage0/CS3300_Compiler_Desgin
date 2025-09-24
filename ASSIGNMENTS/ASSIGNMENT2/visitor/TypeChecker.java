@@ -178,6 +178,30 @@ public class TypeChecker implements GJVisitor<String, TypeChecker.Scope> {
         return null;
     }
 
+    public boolean checkInheritance() {
+        Set<String> s = new LinkedHashSet<>();
+        Set<String> classes = new LinkedHashSet<>(ST.classes.keySet());
+        while (!classes.isEmpty()) {
+            String cls = classes.iterator().next();
+            s.clear();
+
+            while (cls != null) {
+                if (s.contains(cls)) {
+                    return true;
+                }
+
+                s.add(cls);
+                classes.remove(cls);
+
+                String parent = ST.classes.get(cls).parent;
+                cls = parent;
+            }
+
+            s.clear();
+        }
+        return false;
+    }
+
     /**
      * f0 -> ( ImportFunction() )?
      * f1 -> MainClass()
@@ -191,6 +215,9 @@ public class TypeChecker implements GJVisitor<String, TypeChecker.Scope> {
         m.put("boolean", "boolean");
         m.put("int[]", "int[]");
         currScope.currVars.add(m);
+        if (checkInheritance()) {
+            throw new TypeError("Type error");
+        }
         n.f0.accept(this, argu);
         n.f1.accept(this, argu);
         n.f2.accept(this, argu);
@@ -639,7 +666,10 @@ public class TypeChecker implements GJVisitor<String, TypeChecker.Scope> {
         String _ret = null;
         n.f0.accept(this, argu);
         n.f1.accept(this, argu);
-        n.f2.accept(this, argu);
+        String type = n.f2.accept(this, argu);
+        if (!type.equals("int")) {
+            throw new TypeError("Type error");
+        }
         n.f3.accept(this, argu);
         n.f4.accept(this, argu);
         return _ret;
@@ -980,7 +1010,7 @@ public class TypeChecker implements GJVisitor<String, TypeChecker.Scope> {
         if (varType != null) {
             return varType;
         }
-        return var; // Return the identifier name itself for further processing
+        return var;
     }
 
     /**
