@@ -182,13 +182,13 @@ public class TypeChecker implements GJVisitor<String, TypeChecker.Scope> {
                     flag = true;
                     break;
                 }
+
             }
         }
         if (var.startsWith("Function<"))
             return var;
-        if (!flag) {
+        if (!flag)
             throw new SymbolError("Symbol not found");
-        }
         return null;
     }
 
@@ -744,7 +744,6 @@ public class TypeChecker implements GJVisitor<String, TypeChecker.Scope> {
     public String visit(LambdaExpression n, Scope argu) {
         n.f0.accept(this, argu);
         String LambdaType = lambda;
-        System.out.println(lambda);
         String type1 = LambdaType.substring(9, LambdaType.indexOf(','));
         String type2 = LambdaType.substring(LambdaType.indexOf(',') + 1, LambdaType.indexOf('>'));
         type1 = getVarType(type1, currScope.currVars.peek());
@@ -773,8 +772,6 @@ public class TypeChecker implements GJVisitor<String, TypeChecker.Scope> {
         String expr1 = n.f0.accept(this, argu);
         n.f1.accept(this, argu);
         String expr2 = n.f2.accept(this, argu);
-        expr1 = getVarType(expr1, currScope.currVars.peek());
-        expr2 = getVarType(expr2, currScope.currVars.peek());
         if (!expr1.equals("boolean") || !expr2.equals("boolean")) {
             throw new TypeError("Type error");
         }
@@ -790,8 +787,6 @@ public class TypeChecker implements GJVisitor<String, TypeChecker.Scope> {
         String expr1 = n.f0.accept(this, argu);
         n.f1.accept(this, argu);
         String expr2 = n.f2.accept(this, argu);
-        expr1 = getVarType(expr1, currScope.currVars.peek());
-        expr2 = getVarType(expr2, currScope.currVars.peek());
         if (!expr1.equals("boolean") || !expr2.equals("boolean")) {
             throw new TypeError("Type error");
         }
@@ -807,8 +802,6 @@ public class TypeChecker implements GJVisitor<String, TypeChecker.Scope> {
         String expr1 = n.f0.accept(this, argu);
         n.f1.accept(this, argu);
         String expr2 = n.f2.accept(this, argu);
-        expr1 = getVarType(expr1, currScope.currVars.peek());
-        expr2 = getVarType(expr2, currScope.currVars.peek());
         if (!expr1.equals("int") || !expr2.equals("int")) {
             throw new TypeError("Type error");
         }
@@ -824,8 +817,6 @@ public class TypeChecker implements GJVisitor<String, TypeChecker.Scope> {
         String expr1 = n.f0.accept(this, argu);
         n.f1.accept(this, argu);
         String expr2 = n.f2.accept(this, argu);
-        expr1 = getVarType(expr1, currScope.currVars.peek());
-        expr2 = getVarType(expr2, currScope.currVars.peek());
         if (!expr1.equals("int") || !expr2.equals("int")) {
             throw new TypeError("Type error");
         }
@@ -842,8 +833,6 @@ public class TypeChecker implements GJVisitor<String, TypeChecker.Scope> {
         n.f1.accept(this, argu);
         String expr2 = n.f2.accept(this, argu);
         expr1 = getVarType(expr1, currScope.currVars.peek());
-        expr2 = getVarType(expr2, currScope.currVars.peek());
-        expr1 = getVarType(expr1, currScope.currVars.peek());
         if (!expr1.equals("int") || !expr2.equals("int")) {
             throw new TypeError("Type error");
         }
@@ -859,8 +848,6 @@ public class TypeChecker implements GJVisitor<String, TypeChecker.Scope> {
         String expr1 = n.f0.accept(this, argu);
         n.f1.accept(this, argu);
         String expr2 = n.f2.accept(this, argu);
-        expr1 = getVarType(expr1, currScope.currVars.peek());
-        expr2 = getVarType(expr2, currScope.currVars.peek());
         if (!expr1.equals("int") || !expr2.equals("int")) {
             throw new TypeError("Type error");
         }
@@ -876,8 +863,6 @@ public class TypeChecker implements GJVisitor<String, TypeChecker.Scope> {
         String expr1 = n.f0.accept(this, argu);
         n.f1.accept(this, argu);
         String expr2 = n.f2.accept(this, argu);
-        expr1 = getVarType(expr1, currScope.currVars.peek());
-        expr2 = getVarType(expr2, currScope.currVars.peek());
         if (!expr1.equals("int") || !expr2.equals("int")) {
             throw new TypeError("Type error");
         }
@@ -893,8 +878,6 @@ public class TypeChecker implements GJVisitor<String, TypeChecker.Scope> {
         String expr1 = n.f0.accept(this, argu);
         n.f1.accept(this, argu);
         String expr2 = n.f2.accept(this, argu);
-        expr1 = getVarType(expr1, currScope.currVars.peek());
-        expr2 = getVarType(expr2, currScope.currVars.peek());
         if (!expr1.equals("int") || !expr2.equals("int")) {
             throw new TypeError("Type error");
         }
@@ -911,8 +894,6 @@ public class TypeChecker implements GJVisitor<String, TypeChecker.Scope> {
         String expr1 = n.f0.accept(this, argu);
         n.f1.accept(this, argu);
         String expr2 = n.f2.accept(this, argu);
-        expr1 = getVarType(expr1, currScope.currVars.peek());
-        expr2 = getVarType(expr2, currScope.currVars.peek());
         n.f3.accept(this, argu);
         if (!expr1.equals("int[]") || !expr2.equals("int")) {
             throw new TypeError("Type error");
@@ -929,7 +910,6 @@ public class TypeChecker implements GJVisitor<String, TypeChecker.Scope> {
         String type = n.f0.accept(this, argu);
         n.f1.accept(this, argu);
         n.f2.accept(this, argu);
-        type = getVarType(type, currScope.currVars.peek());
         if (!type.equals("int[]")) {
             throw new TypeError("Type error");
         }
@@ -1152,11 +1132,7 @@ public class TypeChecker implements GJVisitor<String, TypeChecker.Scope> {
         String type = n.f1.accept(this, argu);
         n.f2.accept(this, argu);
         n.f3.accept(this, argu);
-        if (type.equals("int") || type.equals("boolean") || type.equals("Integer") || type.equals("Bboolean")) {
-            throw new TypeError("Type error");
-        }
         if (!ST.classes.containsKey(type)) {
-
             throw new SymbolError("Symbol not found");
         }
         return type;
