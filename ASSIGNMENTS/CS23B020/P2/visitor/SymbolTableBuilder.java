@@ -224,10 +224,9 @@ public class SymbolTableBuilder implements GJNoArguVisitor<String> {
         String _ret = null;
         n.f0.accept(this);
         String className = n.f1.accept(this);
-        // if (ST.classes.containsKey(className)) {
-        // Error = true;
-        // return _ret;
-        // }
+        if (ST.classes.containsKey(className)) {
+            throw new TypeError("Type error");
+        }
         currClass = new ClassInfo(className);
         ST.classes.put(className, currClass);
 
@@ -294,6 +293,12 @@ public class SymbolTableBuilder implements GJNoArguVisitor<String> {
         return _ret;
     }
 
+    public class TypeError extends RuntimeException {
+        public TypeError(String message) {
+            super(message);
+        }
+    }
+
     /**
      * f0 -> "public"
      * f1 -> Type()
@@ -313,15 +318,12 @@ public class SymbolTableBuilder implements GJNoArguVisitor<String> {
         String _ret = null;
         n.f0.accept(this);
         String type = n.f1.accept(this);
-        // if (!currClass.methods.containsKey(name))
-        // currMethod = method;
-        // else {
-        // Error = true;
-        // return null;
-        // }
         String name = n.f2.accept(this);
         MethodInfo method = new MethodInfo(name, type);
         currMethod = method;
+        if (currClass.methods.containsKey(name)) {
+            throw new TypeError("Type error");
+        }
         n.f3.accept(this);
         n.f4.accept(this);
         n.f5.accept(this);
@@ -480,18 +482,6 @@ public class SymbolTableBuilder implements GJNoArguVisitor<String> {
     public String visit(AssignmentStatement n) {
         String _ret = null;
         String var = n.f0.accept(this);
-        // if (inMethod) {
-        // if (!currMethod.args.containsKey(var) && !currMethod.vars.containsKey(var)) {
-        // Error = true;
-        // return null;
-        // }
-        // } else {
-        // if (!currClass.fields.containsKey(var) && !currClass.fields.containsKey(var))
-        // {
-        // Error = true;
-        // return null;
-        // }
-        // }
         n.f1.accept(this);
         n.f2.accept(this);
         n.f3.accept(this);
@@ -645,19 +635,11 @@ public class SymbolTableBuilder implements GJNoArguVisitor<String> {
         String _ret = null;
         n.f0.accept(this);
         String var = n.f1.accept(this);
+        if (currMethod.args.containsKey(var) || currMethod.vars.containsKey(var)) {
+            throw new TypeError("Type error");
+        }
+        currMethod.vars.put(var, null);
         n.f2.accept(this);
-        // if (inMethod) {
-        // if (!currMethod.args.containsKey(var) && !currMethod.vars.containsKey(var)) {
-        // Error = true;
-        // return null;
-        // }
-        // } else {
-        // if (!currClass.fields.containsKey(var) && !currClass.fields.containsKey(var))
-        // {
-        // Error = true;
-        // return null;
-        // }
-        // }
         n.f3.accept(this);
         n.f4.accept(this);
         return _ret;
@@ -808,18 +790,6 @@ public class SymbolTableBuilder implements GJNoArguVisitor<String> {
         n.f0.accept(this);
         n.f1.accept(this);
         String var = n.f2.accept(this);
-        // if (inMethod) {
-        // if (!currMethod.args.containsKey(var) && !currMethod.vars.containsKey(var)) {
-        // Error = true;
-        // return null;
-        // }
-        // } else {
-        // if (!currClass.fields.containsKey(var) && !currClass.fields.containsKey(var))
-        // {
-        // Error = true;
-        // return null;
-        // }
-        // }
         n.f3.accept(this);
         n.f4.accept(this);
         n.f5.accept(this);

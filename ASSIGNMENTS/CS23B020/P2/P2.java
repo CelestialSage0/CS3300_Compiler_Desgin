@@ -13,11 +13,12 @@ public class P2 {
             SymbolTableBuilder v = new SymbolTableBuilder();
             // create a visitor.
 
-            root.accept(v);
-            // if (v.Error) {
-            // System.out.println("Symbol not found");
-            // return;
-            // }
+            try {
+                root.accept(v);
+            } catch (SymbolTableBuilder.TypeError e) {
+                System.out.println(e.getMessage());
+                return;
+            }
             // for (Map.Entry<String, ClassInfo> i : v.ST.classes.entrySet()) {
             // System.out.println(i.getKey());
             // ClassInfo c1 = i.getValue();
