@@ -9,7 +9,16 @@ public class P3 {
             // syntax tree.
 
             // System.out.println("Program parsed successfully");
+            SymbolTableBuilder v = new SymbolTableBuilder();
 
+            root.accept(v);
+
+            VTableBuilder vt = new VTableBuilder(v.ST);
+            vt.build();
+
+            IRGenerator ir = new IRGenerator(v.ST, vt);
+
+            root.accept(ir, null);
         } catch (ParseException e) {
             System.out.println(e.toString());
         }

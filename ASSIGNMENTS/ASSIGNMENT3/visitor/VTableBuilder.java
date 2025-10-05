@@ -105,7 +105,7 @@ public class VTableBuilder {
         SymbolTableBuilder.ClassInfo classInfo = ST.classes.get(className);
         HashMap<String, Integer> fields = new HashMap<>();
 
-        int currentOffset = 0;
+        int currentOffset = 4;
 
         // First, add parent's fields if exists
         if (classInfo.parent != null) {
