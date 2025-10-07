@@ -11,6 +11,8 @@ import visitor.SymbolTableBuilder.SymbolTable;
 
 import java.util.*;
 
+import javax.management.RuntimeErrorException;
+
 /**
  * Provides default methods which visit each node in the tree in depth-first
  * order. Your visitors may extend this class.
@@ -203,7 +205,7 @@ public class IRGenerator implements GJVisitor<String, String> {
         n.f3.accept(this, argu);
         n.f4.accept(this, argu);
         n.f5.accept(this, argu);
-        // currClass = null;
+        currClass = null;
         return _ret;
     }
 
@@ -226,7 +228,7 @@ public class IRGenerator implements GJVisitor<String, String> {
         n.f5.accept(this, argu);
         n.f6.accept(this, argu);
         n.f7.accept(this, argu);
-        // currClass = null;
+        currClass = null;
         return _ret;
     }
 
@@ -421,6 +423,20 @@ public class IRGenerator implements GJVisitor<String, String> {
         String exp = n.f2.accept(this, argu);
         System.out.println("MOVE " + var + " " + exp);
         n.f3.accept(this, argu);
+        String curr_var = null;
+        for (Map.Entry<String, String> i : tempMap.entrySet()) {
+            if (i.getValue().equals(var)) {
+                curr_var = i.getKey();
+                break;
+            }
+        }
+        if (curr_var.equals(null)) {
+            throw new RuntimeErrorException(null);
+        }
+        if (ST.classes.get(currClass).fields.containsKey(curr_var)) {
+            int offset = vt.getFieldOffset(currClass, curr_var);
+            System.out.println("HSTORE TEMP 0 " + offset + " " + var);
+        }
         return _ret;
     }
 
@@ -464,11 +480,17 @@ public class IRGenerator implements GJVisitor<String, String> {
      */
     public String visit(IfthenStatement n, String argu) {
         String _ret = null;
+        String true_lbl = newLabel();
+        String false_lbl = newLabel();
         n.f0.accept(this, argu);
         n.f1.accept(this, argu);
-        n.f2.accept(this, argu);
+        String exp = n.f2.accept(this, argu);
+        System.out.println("CJUMP " + exp + " " + true_lbl);
+        System.out.println("JUMP " + false_lbl);
         n.f3.accept(this, argu);
+        System.out.println(true_lbl);
         n.f4.accept(this, argu);
+        System.out.println(false_lbl + " NOOP");
         return _ret;
     }
 
@@ -483,13 +505,22 @@ public class IRGenerator implements GJVisitor<String, String> {
      */
     public String visit(IfthenElseStatement n, String argu) {
         String _ret = null;
+        String true_lbl = newLabel();
+        String false_lbl = newLabel();
+        String end_lbl = newLabel();
         n.f0.accept(this, argu);
         n.f1.accept(this, argu);
-        n.f2.accept(this, argu);
+        String exp = n.f2.accept(this, argu);
+        System.out.println("CJUMP " + exp + " " + true_lbl);
+        System.out.println("JUMP " + false_lbl);
         n.f3.accept(this, argu);
+        System.out.println(true_lbl);
         n.f4.accept(this, argu);
+        System.out.println("JUMP " + end_lbl);
         n.f5.accept(this, argu);
+        System.out.println(false_lbl);
         n.f6.accept(this, argu);
+        System.out.println(end_lbl + " NOOP");
         return _ret;
     }
 
@@ -502,11 +533,20 @@ public class IRGenerator implements GJVisitor<String, String> {
      */
     public String visit(WhileStatement n, String argu) {
         String _ret = null;
+        String loop_lbl = newLabel();
+        String start_lbl = newLabel();
+        String end_lbl = newLabel();
         n.f0.accept(this, argu);
         n.f1.accept(this, argu);
-        n.f2.accept(this, argu);
+        String exp = n.f2.accept(this, argu);
+        System.out.println(loop_lbl + "\tCJUMP " + exp + " " + start_lbl);
+        System.out.println("JUMP " + end_lbl);
         n.f3.accept(this, argu);
+        System.out.println(start_lbl);
         n.f4.accept(this, argu);
+        System.out.println("JUMP " + loop_lbl);
+        System.out.println(end_lbl);
+        System.out.println("NOOP");
         return _ret;
     }
 
@@ -544,7 +584,6 @@ public class IRGenerator implements GJVisitor<String, String> {
      * | PrimaryExpression()
      */
     public String visit(Expression n, String argu) {
-        String _ret = null;
         String a = n.f0.accept(this, argu);
         return a;
     }
@@ -572,11 +611,28 @@ public class IRGenerator implements GJVisitor<String, String> {
      * f2 -> PrimaryExpression()
      */
     public String visit(AndExpression n, String argu) {
-        String _ret = null;
         String a = n.f0.accept(this, argu);
         n.f1.accept(this, argu);
         String b = n.f2.accept(this, argu);
-        return _ret;
+
+        String temp = newTemp();
+        String true_lbl = newLabel();
+        String false_lbl = newLabel();
+        String endlbl = newLabel();
+
+        System.out.println("CJUMP " + a + " " + true_lbl + "_1");
+        System.out.println("JUMP " + false_lbl);
+        System.out.println(true_lbl + "_1");
+        System.out.println("CJUMP " + b + " " + true_lbl + "_2");
+        System.out.println("JUMP " + false_lbl);
+        System.out.println(true_lbl + "_2");
+        System.out.println("MOVE " + temp + " 1");
+        System.out.println("JUMP " + endlbl);
+        System.out.println(false_lbl);
+        System.out.println("MOVE " + temp + " 0");
+        System.out.println(endlbl + " NOOP");
+
+        return temp;
     }
 
     /**
@@ -585,11 +641,26 @@ public class IRGenerator implements GJVisitor<String, String> {
      * f2 -> PrimaryExpression()
      */
     public String visit(OrExpression n, String argu) {
-        String _ret = null;
-        n.f0.accept(this, argu);
+        String a = n.f0.accept(this, argu);
         n.f1.accept(this, argu);
-        n.f2.accept(this, argu);
-        return _ret;
+        String b = n.f2.accept(this, argu);
+
+        String temp = newTemp();
+        String true_lbl = newLabel();
+        String false_lbl = newLabel();
+        String endlbl = newLabel();
+
+        System.out.println("CJUMP " + a + " " + true_lbl);
+        System.out.println("CJUMP " + b + " " + true_lbl);
+        System.out.println("JUMP " + false_lbl);
+        System.out.println(true_lbl);
+        System.out.println("MOVE " + temp + " 1");
+        System.out.println("JUMP " + endlbl);
+        System.out.println(false_lbl);
+        System.out.println("MOVE " + temp + " 0");
+        System.out.println(endlbl + " NOOP");
+
+        return temp;
     }
 
     /**
@@ -598,11 +669,12 @@ public class IRGenerator implements GJVisitor<String, String> {
      * f2 -> PrimaryExpression()
      */
     public String visit(CompareExpression n, String argu) {
-        String _ret = null;
-        n.f0.accept(this, argu);
+        String a = n.f0.accept(this, argu);
         n.f1.accept(this, argu);
-        n.f2.accept(this, argu);
-        return _ret;
+        String b = n.f2.accept(this, argu);
+        String temp = newTemp();
+        System.out.println("MOVE " + temp + " LE " + a + " " + b);
+        return temp;
     }
 
     /**
@@ -611,11 +683,12 @@ public class IRGenerator implements GJVisitor<String, String> {
      * f2 -> PrimaryExpression()
      */
     public String visit(neqExpression n, String argu) {
-        String _ret = null;
-        n.f0.accept(this, argu);
+        String a = n.f0.accept(this, argu);
         n.f1.accept(this, argu);
-        n.f2.accept(this, argu);
-        return _ret;
+        String b = n.f2.accept(this, argu);
+        String temp = newTemp();
+        System.out.println("MOVE " + temp + " NE " + a + " " + b);
+        return temp;
     }
 
     /**
@@ -624,7 +697,6 @@ public class IRGenerator implements GJVisitor<String, String> {
      * f2 -> PrimaryExpression()
      */
     public String visit(AddExpression n, String argu) {
-        String _ret = null;
         String a = n.f0.accept(this, argu);
         n.f1.accept(this, argu);
         String b = n.f2.accept(this, argu);
@@ -639,7 +711,6 @@ public class IRGenerator implements GJVisitor<String, String> {
      * f2 -> PrimaryExpression()
      */
     public String visit(MinusExpression n, String argu) {
-        String _ret = null;
         String a = n.f0.accept(this, argu);
         n.f1.accept(this, argu);
         String b = n.f2.accept(this, argu);
@@ -654,7 +725,6 @@ public class IRGenerator implements GJVisitor<String, String> {
      * f2 -> PrimaryExpression()
      */
     public String visit(TimesExpression n, String argu) {
-        String _ret = null;
         String a = n.f0.accept(this, argu);
         n.f1.accept(this, argu);
         String b = n.f2.accept(this, argu);
@@ -669,7 +739,6 @@ public class IRGenerator implements GJVisitor<String, String> {
      * f2 -> PrimaryExpression()
      */
     public String visit(DivExpression n, String argu) {
-        String _ret = null;
         String a = n.f0.accept(this, argu);
         n.f1.accept(this, argu);
         String b = n.f2.accept(this, argu);
@@ -699,7 +768,6 @@ public class IRGenerator implements GJVisitor<String, String> {
      * f2 -> "length"
      */
     public String visit(ArrayLength n, String argu) {
-        String _ret = null;
         String arr = n.f0.accept(this, argu);
         n.f1.accept(this, argu);
         n.f2.accept(this, argu);
@@ -761,7 +829,6 @@ public class IRGenerator implements GJVisitor<String, String> {
      * | BracketExpression()
      */
     public String visit(PrimaryExpression n, String argu) {
-        String _ret = null;
         String a = n.f0.accept(this, argu);
         return a;
     }
@@ -770,7 +837,6 @@ public class IRGenerator implements GJVisitor<String, String> {
      * f0 -> <INTEGER_LITERAL>
      */
     public String visit(IntegerLiteral n, String argu) {
-        String _ret = null;
         return n.f0.toString();
     }
 
@@ -778,7 +844,6 @@ public class IRGenerator implements GJVisitor<String, String> {
      * f0 -> "true"
      */
     public String visit(TrueLiteral n, String argu) {
-        String _ret = null;
         n.f0.accept(this, argu);
         return "1";
     }
@@ -787,7 +852,6 @@ public class IRGenerator implements GJVisitor<String, String> {
      * f0 -> "false"
      */
     public String visit(FalseLiteral n, String argu) {
-        String _ret = null;
         n.f0.accept(this, argu);
         return "0";
     }
@@ -796,13 +860,14 @@ public class IRGenerator implements GJVisitor<String, String> {
      * f0 -> <IDENTIFIER>
      */
     public String visit(Identifier n, String argu) {
-        String _ret = null;
         String id = n.f0.toString();
 
         if (currClass != null && vt.getFieldOffset(currClass, id) != -1) {
             String temp = newTemp();
             int offset = vt.getFieldOffset(currClass, id);
-            System.out.println("HLOAD " + temp + " TEMP 0 " + offset);
+            tempMap.put(id, temp);
+            if (currMethod != null)
+                System.out.println("HLOAD " + temp + " TEMP 0 " + offset);
             return temp;
         }
 
@@ -833,7 +898,6 @@ public class IRGenerator implements GJVisitor<String, String> {
      * f0 -> "this"
      */
     public String visit(ThisExpression n, String argu) {
-        String _ret = null;
         n.f0.accept(this, argu);
         return "TEMP 0";
     }
@@ -887,11 +951,10 @@ public class IRGenerator implements GJVisitor<String, String> {
      * f2 -> ")"
      */
     public String visit(BracketExpression n, String argu) {
-        String _ret = null;
         n.f0.accept(this, argu);
-        n.f1.accept(this, argu);
+        String exp = n.f1.accept(this, argu);
         n.f2.accept(this, argu);
-        return _ret;
+        return exp;
     }
 
 }
