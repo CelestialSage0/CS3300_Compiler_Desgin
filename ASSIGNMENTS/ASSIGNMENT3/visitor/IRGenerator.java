@@ -12,8 +12,6 @@ import visitor.VTableBuilder.ClassObject;
 
 import java.util.*;
 
-import javax.management.RuntimeErrorException;
-
 /**
  * Provides default methods which visit each node in the tree in depth-first
  * order. Your visitors may extend this class.
@@ -102,6 +100,7 @@ public class IRGenerator implements GJVisitor<String, String> {
     String currMethod = null;
 
     HashMap<String, String> tempMap = new HashMap<>();
+    HashMap<String, String> typeMap = new HashMap<>();
 
     /**
      * f0 -> ( ImportFunction() )?
@@ -240,9 +239,8 @@ public class IRGenerator implements GJVisitor<String, String> {
      */
     public String visit(VarDeclaration n, String argu) {
         String _ret = null;
-        n.f0.accept(this, argu);
-        n.f1.accept(this, argu);
-        n.f2.accept(this, argu);
+        String type = n.f0.accept(this, argu);
+        typeMap.put(n.f1.f0.toString(), type);
         return _ret;
     }
 
@@ -329,8 +327,8 @@ public class IRGenerator implements GJVisitor<String, String> {
      */
     public String visit(Type n, String argu) {
         String _ret = null;
-        n.f0.accept(this, argu);
-        return _ret;
+        String type = n.f0.accept(this, argu);
+        return type;
     }
 
     /**
@@ -343,7 +341,7 @@ public class IRGenerator implements GJVisitor<String, String> {
         n.f0.accept(this, argu);
         n.f1.accept(this, argu);
         n.f2.accept(this, argu);
-        return _ret;
+        return "int[]";
     }
 
     /**
@@ -352,7 +350,7 @@ public class IRGenerator implements GJVisitor<String, String> {
     public String visit(BooleanType n, String argu) {
         String _ret = null;
         n.f0.accept(this, argu);
-        return _ret;
+        return "boolean";
     }
 
     /**
@@ -361,7 +359,7 @@ public class IRGenerator implements GJVisitor<String, String> {
     public String visit(IntegerType n, String argu) {
         String _ret = null;
         n.f0.accept(this, argu);
-        return _ret;
+        return "int";
     }
 
     /**
@@ -423,16 +421,7 @@ public class IRGenerator implements GJVisitor<String, String> {
         String exp = n.f2.accept(this, argu);
         System.out.println("MOVE " + var + " " + exp);
         n.f3.accept(this, argu);
-        String curr_var = null;
-        for (Map.Entry<String, String> i : tempMap.entrySet()) {
-            if (i.getValue().equals(var)) {
-                curr_var = i.getKey();
-                break;
-            }
-        }
-        if (curr_var.equals(null)) {
-            throw new RuntimeErrorException(null);
-        }
+        String curr_var = n.f0.f0.toString();
         if (ST.classes.get(currClass).fields.containsKey(curr_var)) {
             int offset = vt.getFieldOffset(currClass, curr_var);
             String addr = newTemp();
@@ -461,12 +450,14 @@ public class IRGenerator implements GJVisitor<String, String> {
         String exp = n.f5.accept(this, argu);
         n.f6.accept(this, argu);
 
+        String idxTemp = newTemp();
         String offset = newTemp();
-
-        System.out.println("MOVE " + idx + " PLUS " + idx + " 1");
-        System.out.println("MOVE " + offset + " TIMES " + idx + " 4");
-
         String addr = newTemp();
+
+        System.out.println("MOVE " + idxTemp + " " + idx);
+        System.out.println("MOVE " + idxTemp + " PLUS " + idxTemp + " 1");
+        System.out.println("MOVE " + offset + " TIMES " + idxTemp + " 4");
+
         System.out.println("MOVE " + addr + " PLUS " + var + " " + offset);
 
         System.out.println("HSTORE " + addr + " 0" + " " + exp);
@@ -810,6 +801,31 @@ public class IRGenerator implements GJVisitor<String, String> {
      */
     ArrayList<String> args;
 
+    private String getExpressionType(String tempOrId) {
+        // Check if it's a class name
+        if (ST.classes.containsKey(tempOrId)) {
+            return tempOrId;
+        }
+
+        // Check if we have type info cached
+        if (typeMap.containsKey(tempOrId)) {
+            return typeMap.get(tempOrId);
+        }
+
+        // Look up in tempMap (reverse lookup)
+        for (Map.Entry<String, String> entry : tempMap.entrySet()) {
+            if (entry.getValue().equals(tempOrId)) {
+                String identifier = entry.getKey();
+                if (typeMap.containsKey(identifier)) {
+                    return typeMap.get(identifier);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    // FIXED MessageSend - Handle all cases
     public String visit(MessageSend n, String argu) {
         String _ret = null;
         String obj = n.f0.accept(this, argu);
@@ -820,18 +836,19 @@ public class IRGenerator implements GJVisitor<String, String> {
         n.f4.accept(this, argu);
         n.f5.accept(this, argu);
 
-        String curr_var = null;
-        // System.out.println(tempMap);
-        for (Map.Entry<String, String> i : tempMap.entrySet()) {
-            if (i.getValue().equals(obj)) {
-                curr_var = i.getKey();
-                break;
-            }
-        }
+        // Get the type of the object
+        String objType = getExpressionType(obj);
 
-        // System.out.println("###### " + curr_var + " ######## " + obj);
-        if (curr_var.equals(null)) {
-            throw new RuntimeErrorException(null);
+        // If still null, try to get from the primary expression directly
+        if (objType == null) {
+            // Check if obj is "TEMP 0" (this)
+            if (obj.equals("TEMP 0")) {
+                objType = currClass;
+            } else {
+                // Try to find the identifier from the original expression
+                // This handles cases where we have a fresh allocation or complex expression
+                objType = getTypeFromPrimaryExpression(n.f0);
+            }
         }
 
         String ans = newTemp();
@@ -844,7 +861,7 @@ public class IRGenerator implements GJVisitor<String, String> {
         System.out.println("HLOAD " + vtable + " " + obj + " 0");
 
         String addr = newTemp();
-        System.out.println("MOVE " + addr + " PLUS " + vtable + " " + vt.getMethodOffset(curr_var, id));
+        System.out.println("MOVE " + addr + " PLUS " + vtable + " " + vt.getMethodOffset(objType, id));
         System.out.println("HLOAD " + method + " " + addr + " 0");
 
         // Return
@@ -857,7 +874,57 @@ public class IRGenerator implements GJVisitor<String, String> {
             System.out.println(arg);
         }
         System.out.println(")");
+
+        // Cache the return type
+        if (ST.classes.get(objType).methods.containsKey(id)) {
+            String returnType = ST.classes.get(objType).methods.get(id).retType;
+            typeMap.put(ans, returnType);
+        }
+
         return ans;
+    }
+
+    // Helper to get type from a PrimaryExpression node
+    private String getTypeFromPrimaryExpression(Node primaryExpr) {
+        if (primaryExpr instanceof PrimaryExpression) {
+            PrimaryExpression pe = (PrimaryExpression) primaryExpr;
+            Node choice = pe.f0.choice;
+
+            // Check if it's AllocationExpression
+            if (choice instanceof AllocationExpression) {
+                AllocationExpression alloc = (AllocationExpression) choice;
+                return alloc.f1.f0.toString(); // Get the class name
+            }
+
+            // Check if it's ThisExpression
+            if (choice instanceof ThisExpression) {
+                return currClass;
+            }
+
+            // Check if it's an Identifier
+            if (choice instanceof Identifier) {
+                String id = ((Identifier) choice).f0.toString();
+
+                // Look up in current method
+                if (currMethod != null) {
+                    MethodInfo currentMethod = ST.classes.get(currClass).methods.get(currMethod);
+
+                    if (currentMethod.args.containsKey(id)) {
+                        return currentMethod.args.get(id);
+                    }
+                    if (currentMethod.vars.containsKey(id)) {
+                        return currentMethod.vars.get(id);
+                    }
+                }
+
+                // Look up in class fields
+                if (ST.classes.get(currClass).fields.containsKey(id)) {
+                    return ST.classes.get(currClass).fields.get(id);
+                }
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -935,9 +1002,14 @@ public class IRGenerator implements GJVisitor<String, String> {
 
         // methods
         if (currClass != null && vt.getFieldOffset(currClass, id) != -1) {
+            if (tempMap.containsKey(id)) {
+                return tempMap.get(id);
+            }
             String temp = newTemp();
             int offset = vt.getFieldOffset(currClass, id);
-            tempMap.put(id, temp);
+            String type = ST.classes.get(currClass).fields.get(id);
+            typeMap.put(id, type);
+            // typeMap.put(temp, type);
             if (currMethod != null) {
                 String addr = newTemp();
                 System.out.println("MOVE " + addr + " PLUS TEMP 0 " + offset);
@@ -954,6 +1026,9 @@ public class IRGenerator implements GJVisitor<String, String> {
             for (String paramName : currentMethod.args.keySet()) {
                 if (paramName.equals(id)) {
                     tempMap.put(paramName, "TEMP " + param);
+                    String type = currentMethod.args.get(paramName);
+                    typeMap.put(paramName, type);
+                    // typeMap.put("TEMP " + param, type);
                     return "TEMP " + param;
                 }
                 param++;
@@ -965,6 +1040,9 @@ public class IRGenerator implements GJVisitor<String, String> {
                 }
                 String temp = newTemp();
                 tempMap.put(id, temp);
+                String type = currentMethod.vars.get(id);
+                typeMap.put(id, type);
+                // typeMap.put(temp, type);
                 return temp;
             }
         }
@@ -978,6 +1056,8 @@ public class IRGenerator implements GJVisitor<String, String> {
     public String visit(ThisExpression n, String argu) {
         n.f0.accept(this, argu);
         tempMap.put(currClass, "TEMP 0");
+        typeMap.put("TEMP 0", currClass);
+        typeMap.put(currClass, currClass);
         return "TEMP 0";
     }
 
@@ -1021,16 +1101,6 @@ public class IRGenerator implements GJVisitor<String, String> {
         String var = n.f1.accept(this, argu);
         n.f2.accept(this, argu);
         n.f3.accept(this, argu);
-        // String curr_var = null;
-        // for (Map.Entry<String, String> i : tempMap.entrySet()) {
-        // if (i.getValue().equals(var)) {
-        // curr_var = i.getKey();
-        // break;
-        // }
-        // }
-        // if (curr_var.equals(null)) {
-        // throw new RuntimeErrorException(null);
-        // }
 
         String tempClass = newTemp();
         ClassObject classObject = vt.ClassObjects.get(var);

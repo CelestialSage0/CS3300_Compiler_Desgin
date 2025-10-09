@@ -33,7 +33,6 @@ public class VTableBuilder {
      * Build all class objects with VTable and field information
      */
     public void build() {
-        // Process each class
         for (String className : ST.classes.keySet()) {
             buildClassInfo(className);
         }
