@@ -16,7 +16,7 @@ public class P3 {
             VTableBuilder vt = new VTableBuilder(v.ST);
             vt.build();
 
-            claude ir = new claude(v.ST, vt);
+            IRGenerator ir = new IRGenerator(v.ST, vt);
 
             root.accept(ir, null);
         } catch (ParseException e) {
