@@ -1044,6 +1044,22 @@ public class IRGenerator implements GJVisitor<String, String> {
      * f2 -> "("
      * f3 -> ")"
      */
+
+    public String class_name(String className, String method) {
+        ClassInfo c = ST.classes.get(className);
+        while (c != null) {
+            if (c.methods.containsKey(method)) {
+                return c.name;
+            }
+            if (c.parent != null) {
+                c = ST.classes.get(c.parent);
+            } else {
+                break;
+            }
+        }
+        return className;
+    }
+
     public String visit(AllocationExpression n, String argu) {
         n.f0.accept(this, argu);
         String var = n.f1.accept(this, argu);
@@ -1058,21 +1074,24 @@ public class IRGenerator implements GJVisitor<String, String> {
 
         // Object allocation
         String obj = newTemp();
-        System.out.println("MOVE " + obj + " HALLOCATE " + (classObject.fields.size() + 1) * 4);
+        System.out.println("MOVE " + obj + " HALLOCATE " + classObject.size);
 
         // VTable allocation
         String vtable = newTemp();
         System.out.println("MOVE " + vtable + " HALLOCATE " + (classObject.methods.size() * 4));
 
         // storing Methods
-        int i = 0;
-        for (String method : classObject.methods.keySet()) {
-            System.out.println("HSTORE " + vtable + " " + i + " " + var + "_" + method);
-            i += 4;
+        List<Map.Entry<String, Integer>> meths = new ArrayList<>(classObject.methods.entrySet());
+        meths.sort(Map.Entry.comparingByValue());
+        for (Map.Entry<String, Integer> entry : meths) {
+            String method = entry.getKey();
+            int offset = entry.getValue();
+            String className = class_name(var, method);
+            System.out.println("HSTORE " + vtable + " " + offset + " " + className + "_" + method);
         }
 
         // initializing fields
-        for (int j = 4; j < classObject.fields.size(); j += 4) {
+        for (int j = 4; j < classObject.size; j += 4) {
             System.out.println("HSTORE " + obj + " " + j + " 0");
         }
 

@@ -87,7 +87,7 @@ public class VTableBuilder {
             for (Map.Entry<String, Integer> field : parentObject.fields.entrySet()) {
                 fields.put(field.getKey(), field.getValue());
             }
-            currentOffset += 4;
+            currentOffset = parentObject.size;
         }
 
         for (String fieldName : classInfo.fields.keySet()) {
