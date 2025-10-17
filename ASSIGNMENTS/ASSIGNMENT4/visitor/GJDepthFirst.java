@@ -64,6 +64,7 @@ public class GJDepthFirst implements GJVisitor<String, String> {
    //
    // User-generated visitor methods below
    //
+   Stack<String> labels = new Stack<>();
    public boolean inCall = false;
    public String params = "";
 
@@ -71,8 +72,8 @@ public class GJDepthFirst implements GJVisitor<String, String> {
    int LabelCnt = 0;
 
    public void setTempCnt() {
-      TempCnt = 10000;
-      LabelCnt = 10000;
+      TempCnt = 1000;
+      LabelCnt = 1000;
    }
 
    public String newTemp() {
@@ -108,7 +109,20 @@ public class GJDepthFirst implements GJVisitor<String, String> {
     */
    public String visit(StmtList n, String argu) {
       String _ret = null;
-      n.f0.accept(this, argu);
+      for (Enumeration<Node> e = n.f0.elements(); e.hasMoreElements();) {
+         NodeSequence seq = (NodeSequence) e.nextElement();
+
+         // Handle optional label
+         NodeOptional labelOpt = (NodeOptional) seq.elementAt(0);
+         if (labelOpt.present()) {
+            String label = labelOpt.accept(this, argu);
+            System.out.println(label);
+         }
+
+         // Handle statement
+         Stmt stmt = (Stmt) seq.elementAt(1);
+         stmt.accept(this, argu);
+      }
       return _ret;
    }
 
@@ -126,7 +140,10 @@ public class GJDepthFirst implements GJVisitor<String, String> {
       String id = n.f2.accept(this, argu);
       n.f3.accept(this, argu);
       System.out.println(lbl + " [" + id + "]");
-      n.f4.accept(this, argu);
+      System.out.println("BEGIN");
+      String exp = n.f4.accept(this, argu);
+      System.out.println("RETURN " + exp);
+      System.out.println("END");
       return _ret;
    }
 
@@ -153,6 +170,7 @@ public class GJDepthFirst implements GJVisitor<String, String> {
       String _ret = null;
       n.f0.accept(this, argu);
       System.out.println("NOOP");
+      // labels.pop();
       return _ret;
    }
 
@@ -163,6 +181,7 @@ public class GJDepthFirst implements GJVisitor<String, String> {
       String _ret = null;
       n.f0.accept(this, argu);
       System.out.println("ERROR");
+      // labels.pop();
       return _ret;
    }
 
@@ -177,6 +196,7 @@ public class GJDepthFirst implements GJVisitor<String, String> {
       String exp = n.f1.accept(this, argu);
       String lbl = n.f2.accept(this, argu);
       System.out.println("CJUMP " + exp + " " + lbl);
+      labels.push(lbl);
       return _ret;
    }
 
@@ -204,7 +224,9 @@ public class GJDepthFirst implements GJVisitor<String, String> {
       String exp1 = n.f1.accept(this, argu);
       String id = n.f2.accept(this, argu);
       String exp2 = n.f3.accept(this, argu);
-      System.out.println("HSTORE " + exp1 + " " + id + " " + exp2);
+      String temp = newTemp();
+      System.out.println("MOVE " + temp + " " + exp2);
+      System.out.println("HSTORE " + exp1 + " " + id + " " + temp);
       return _ret;
    }
 
@@ -273,13 +295,9 @@ public class GJDepthFirst implements GJVisitor<String, String> {
     */
    public String visit(StmtExp n, String argu) {
       n.f0.accept(this, argu);
-      System.out.println("BEGIN");
       n.f1.accept(this, argu);
       n.f2.accept(this, argu);
-      System.out.println("RETURN");
       String exp = n.f3.accept(this, argu);
-      System.out.println(exp);
-      System.out.println("END");
       n.f4.accept(this, argu);
       return exp;
    }
@@ -294,14 +312,31 @@ public class GJDepthFirst implements GJVisitor<String, String> {
 
    public String visit(Call n, String argu) {
       inCall = true;
-      params = "";
-      String temp = newTemp();
+      StringBuilder paramsBuilder = new StringBuilder();
+
       n.f0.accept(this, argu);
       String exp = n.f1.accept(this, argu);
       n.f2.accept(this, argu);
-      n.f3.accept(this, argu);
+
+      // Process parameters and ensure they are temps
+      if (n.f3.present()) {
+         for (Enumeration<Node> e = n.f3.elements(); e.hasMoreElements();) {
+            String param = e.nextElement().accept(this, argu);
+            // If parameter is not a temp, create one
+            if (!param.startsWith("TEMP")) {
+               String temp = newTemp();
+               System.out.println("MOVE " + temp + " " + param);
+               paramsBuilder.append(temp).append(" ");
+            } else {
+               paramsBuilder.append(param).append(" ");
+            }
+         }
+      }
+
       n.f4.accept(this, argu);
-      System.out.println("MOVE " + temp + " CALL " + exp + "(" + params + ")");
+
+      String temp = newTemp();
+      System.out.println("MOVE " + temp + " CALL " + exp + "(" + paramsBuilder.toString().trim() + ")");
       inCall = false;
       return temp;
    }
@@ -326,12 +361,13 @@ public class GJDepthFirst implements GJVisitor<String, String> {
     * f2 -> Exp()
     */
    public String visit(BinOp n, String argu) {
-      String _ret = null;
       String temp = newTemp();
       String op = n.f0.accept(this, argu);
       String exp1 = n.f1.accept(this, argu);
       String exp2 = n.f2.accept(this, argu);
-      System.out.println("MOVE " + temp + " " + op + " " + exp1 + " " + exp2);
+      String newTemp = newTemp();
+      System.out.println("MOVE " + newTemp + " " + exp1);
+      System.out.println("MOVE " + temp + " " + op + " " + newTemp + " " + exp2);
       if (inCall)
          params += (temp + " ");
       return temp;
@@ -346,7 +382,7 @@ public class GJDepthFirst implements GJVisitor<String, String> {
     * | "DIV"
     */
    public String visit(Operator n, String argu) {
-      String op = n.f0.accept(this, argu);
+      n.f0.accept(this, argu);
       String[] arr = { "LE", "NE", "PLUS", "MINUS", "TIMES", "DIV" };
       int x = n.f0.which;
       return arr[x];
@@ -357,7 +393,6 @@ public class GJDepthFirst implements GJVisitor<String, String> {
     * f1 -> IntegerLiteral()
     */
    public String visit(Temp n, String argu) {
-      String _ret = null;
       String id = n.f1.accept(this, argu);
       return "TEMP " + id;
    }
