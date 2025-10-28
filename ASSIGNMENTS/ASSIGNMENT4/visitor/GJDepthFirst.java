@@ -112,14 +112,12 @@ public class GJDepthFirst implements GJVisitor<String, String> {
       for (Enumeration<Node> e = n.f0.elements(); e.hasMoreElements();) {
          NodeSequence seq = (NodeSequence) e.nextElement();
 
-         // Handle optional label
          NodeOptional labelOpt = (NodeOptional) seq.elementAt(0);
          if (labelOpt.present()) {
             String label = labelOpt.accept(this, argu);
             System.out.println(label);
          }
 
-         // Handle statement
          Stmt stmt = (Stmt) seq.elementAt(1);
          stmt.accept(this, argu);
       }
@@ -318,11 +316,9 @@ public class GJDepthFirst implements GJVisitor<String, String> {
       String exp = n.f1.accept(this, argu);
       n.f2.accept(this, argu);
 
-      // Process parameters and ensure they are temps
       if (n.f3.present()) {
          for (Enumeration<Node> e = n.f3.elements(); e.hasMoreElements();) {
             String param = e.nextElement().accept(this, argu);
-            // If parameter is not a temp, create one
             if (!param.startsWith("TEMP")) {
                String temp = newTemp();
                System.out.println("MOVE " + temp + " " + param);
