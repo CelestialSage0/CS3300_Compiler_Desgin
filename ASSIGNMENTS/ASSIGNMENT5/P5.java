@@ -8,10 +8,8 @@ import java.util.*;
 public class P5 {
     public static void main(String[] args) {
         try {
-            // ===== Phase 0: Parse MicroIR program =====
             Node root = new microIRParser(System.in).Goal();
 
-            // ===== Phase 1: Liveness Analysis =====
             LivenessAnalysis livenessAnalyzer = new LivenessAnalysis();
             root.accept(livenessAnalyzer, null);
 
@@ -24,11 +22,8 @@ public class P5 {
                 }
             }
 
-            // ===== Phase 2: Register Allocation =====
-
             RegisterAllocator allocator = new RegisterAllocator();
 
-            // Store per-procedure data
             Map<String, List<AllocationChange>> procChanges = new HashMap<>();
             Map<String, Map<Integer, Map<String, String>>> procAllocationTimeline = new HashMap<>();
             Map<String, Integer> procStackSlots = new HashMap<>();
@@ -40,7 +35,6 @@ public class P5 {
                 List<AllocationChange> changes = allocator.allocate(procIntervals);
                 procChanges.put(procName, changes);
 
-                // ---- Build allocation timeline (HashMap) ----
                 Map<Integer, Map<String, String>> allocationTimeline = new HashMap<>();
                 Map<String, String> currentAlloc = new HashMap<>();
 
@@ -53,11 +47,9 @@ public class P5 {
                         case REMOVE -> currentAlloc.remove(change.tempId);
                     }
 
-                    // Save a copy at this position
                     allocationTimeline.put(change.position, new HashMap<>(currentAlloc));
                 }
 
-                // ---- Fill missing positions ----
                 Map<String, String> lastState = new HashMap<>();
                 for (int i = 1; i <= maxPos; i++) {
                     Map<String, String> stateAtPos = allocationTimeline.get(i);
@@ -70,7 +62,6 @@ public class P5 {
 
                 procAllocationTimeline.put(procName, allocationTimeline);
 
-                // ---- Compute total stack slots used ----
                 int stackSlots = (int) changes.stream()
                         .filter(c -> c.kind == ChangeKind.SPILL)
                         .map(c -> c.where)
@@ -79,7 +70,6 @@ public class P5 {
                 procStackSlots.put(procName, stackSlots);
             }
 
-            // ===== Phase 3: (Optional) Code Generation =====
             CodeGeneration codeGen = new CodeGeneration(
                     livenessAnalyzer.procedureIntervals,
                     procAllocationTimeline,

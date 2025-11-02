@@ -102,9 +102,24 @@ public class CodeGeneration implements GJVisitor<String, String> {
     * f0 -> ( ( Label() )? Stmt() )*
     */
    public String visit(StmtList n, String argu) {
-      String _ret = null;
-      n.f0.accept(this, argu);
-      return _ret;
+      for (Node node : n.f0.nodes) {
+         // Each node is a LabelStmt pair
+         NodeSequence pair = (NodeSequence) node;
+
+         // Check if there is a label (it's optional)
+         if (pair.elementAt(0) instanceof NodeOptional) {
+            NodeOptional opt = (NodeOptional) pair.elementAt(0);
+            if (opt.present()) {
+               Label labelNode = (Label) opt.node;
+               String label = labelNode.f0.toString();
+               System.out.println(label);
+            }
+         }
+
+         // Visit the statement
+         pair.elementAt(1).accept(this, argu);
+      }
+      return null;
    }
 
    /**
@@ -126,12 +141,33 @@ public class CodeGeneration implements GJVisitor<String, String> {
                   + "][" + procedureIntervals.get(currProcedure).maxCallArgs + "]");
       currPos = 1;
 
+      // Save callee-saved registers
       for (int i = 0; i < 8; i++) {
          System.out.println("ASTORE SPILLEDARG " + (i + 10) + " s" + i);
       }
 
+      // Load parameters from a registers into their allocated registers
+      int numParams = Integer.parseInt(id);
+      for (int i = 0; i < numParams && i < 4; i++) {
+         String tempId = "TEMP " + i;
+         String allocatedReg = procAllocationTimeline.get(currProcedure).get(currPos).get(tempId);
+         if (allocatedReg != null) {
+            System.out.println("MOVE " + allocatedReg + " a" + i);
+         }
+      }
+
+      // Load parameters beyond a3 from SPILLEDARG (they were passed via stack)
+      for (int i = 4; i < numParams; i++) {
+         String tempId = "TEMP " + i;
+         String allocatedReg = procAllocationTimeline.get(currProcedure).get(currPos).get(tempId);
+         if (allocatedReg != null) {
+            System.out.println("ALOAD " + allocatedReg + " SPILLEDARG " + (i - 4));
+         }
+      }
+
       n.f4.accept(this, argu);
 
+      // Restore callee-saved registers
       for (int i = 0; i < 8; i++) {
          System.out.println("ALOAD s" + i + " SPILLEDARG " + (i + 10));
       }
@@ -318,7 +354,7 @@ public class CodeGeneration implements GJVisitor<String, String> {
          if (i < 4) {
             System.out.println("  MOVE a" + i + " " + args.get(i));
          } else {
-            System.out.println("  PASSARG " + (i - 4) + " " + args.get(i));
+            System.out.println("  PASSARG " + (i - 4 + 1) + " " + args.get(i));
          }
       }
 
@@ -404,9 +440,6 @@ public class CodeGeneration implements GJVisitor<String, String> {
     */
    public String visit(Label n, String argu) {
       n.f0.accept(this, argu);
-      String id = n.f0.toString();
-      if (id.startsWith("L"))
-         System.out.println(id);
       return n.f0.toString();
    }
 

@@ -59,7 +59,6 @@ public class LivenessAnalysis implements GJVisitor<String, String> {
       return null;
    }
 
-   // Structure to record TEMP intervals for a procedure
    public static class TempInterval {
       public String tempId;
       public int firstUse = Integer.MAX_VALUE;
@@ -71,7 +70,6 @@ public class LivenessAnalysis implements GJVisitor<String, String> {
       }
    }
 
-   // Structure to store intervals and metadata for each procedure
    public static class ProcedureIntervals {
       public String procedureName;
       public Map<String, TempInterval> tempIntervals = new HashMap<>();
