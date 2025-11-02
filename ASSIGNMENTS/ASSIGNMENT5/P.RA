@@ -1,108 +1,3 @@
-
-===============================
-   LIVENESS ANALYSIS RESULTS   
-===============================
-
-Procedure: MAIN
-------------------------------------
-TEMP       Start      End       
-------------------------------------
-TEMP 3     3          4         
-TEMP 10    14         15        
-TEMP 2     2          3         
-TEMP 1     4          10        
-TEMP 0     11         15        
-TEMP 11    15         16        
-TEMP 9     13         15        
-TEMP 8     12         13        
-TEMP 7     8          9         
-TEMP 6     6          7         
-TEMP 5     5          6         
-TEMP 4     7          11        
-------------------------------------
-
-Procedure: Fac_ComputeFac
-------------------------------------
-TEMP       Start      End       
-------------------------------------
-TEMP 3     2          3         
-TEMP 10    11         12        
-TEMP 1     1          14        
-TEMP 0     1          8         
-TEMP 13    14         15        
-TEMP 12    13         14        
-TEMP 11    12         13        
-TEMP 9     10         13        
-TEMP 8     9          10        
-TEMP 7     8          13        
-TEMP 6     5          6         
-TEMP 5     6          16        
-TEMP 4     3          4         
-------------------------------------
-
-
-===============================
-   LINEAR SCAN ALLOCATION TRACE
-===============================
-
-Procedure: MAIN
-------------------------------------
-pos=2    ADD     TEMP 2     -> s0          |  Current: {TEMP 2=s0}
-pos=3    ADD     TEMP 3     -> s1          |  Current: {TEMP 3=s1, TEMP 2=s0}
-pos=4    ADD     TEMP 1     -> s0          |  Current: {TEMP 3=s1, TEMP 2=s0, TEMP 1=s0}
-pos=4    REMOVE  TEMP 2     -> s0          |  Current: {TEMP 3=s1, TEMP 1=s0}
-pos=5    REMOVE  TEMP 3     -> s1          |  Current: {TEMP 1=s0}
-pos=5    ADD     TEMP 5     -> s1          |  Current: {TEMP 1=s0, TEMP 5=s1}
-pos=6    ADD     TEMP 6     -> s2          |  Current: {TEMP 1=s0, TEMP 6=s2, TEMP 5=s1}
-pos=7    ADD     TEMP 4     -> s1          |  Current: {TEMP 1=s0, TEMP 6=s2, TEMP 5=s1, TEMP 4=s1}
-pos=7    REMOVE  TEMP 5     -> s1          |  Current: {TEMP 1=s0, TEMP 6=s2, TEMP 4=s1}
-pos=8    REMOVE  TEMP 6     -> s2          |  Current: {TEMP 1=s0, TEMP 4=s1}
-pos=8    ADD     TEMP 7     -> s2          |  Current: {TEMP 1=s0, TEMP 7=s2, TEMP 4=s1}
-pos=11   ADD     TEMP 0     -> s0          |  Current: {TEMP 1=s0, TEMP 0=s0, TEMP 7=s2, TEMP 4=s1}
-pos=11   REMOVE  TEMP 1     -> s0          |  Current: {TEMP 0=s0, TEMP 7=s2, TEMP 4=s1}
-pos=11   REMOVE  TEMP 7     -> s2          |  Current: {TEMP 0=s0, TEMP 4=s1}
-pos=12   REMOVE  TEMP 4     -> s1          |  Current: {TEMP 0=s0}
-pos=12   ADD     TEMP 8     -> s1          |  Current: {TEMP 0=s0, TEMP 8=s1}
-pos=13   ADD     TEMP 9     -> s2          |  Current: {TEMP 0=s0, TEMP 9=s2, TEMP 8=s1}
-pos=14   ADD     TEMP 10    -> s1          |  Current: {TEMP 10=s1, TEMP 0=s0, TEMP 9=s2, TEMP 8=s1}
-pos=14   REMOVE  TEMP 8     -> s1          |  Current: {TEMP 10=s1, TEMP 0=s0, TEMP 9=s2}
-pos=15   ADD     TEMP 11    -> s3          |  Current: {TEMP 10=s1, TEMP 0=s0, TEMP 11=s3, TEMP 9=s2}
-pos=16   REMOVE  TEMP 0     -> s0          |  Current: {TEMP 10=s1, TEMP 11=s3, TEMP 9=s2}
-pos=16   REMOVE  TEMP 10    -> s1          |  Current: {TEMP 11=s3, TEMP 9=s2}
-pos=16   REMOVE  TEMP 9     -> s2          |  Current: {TEMP 11=s3}
-pos=17   REMOVE  TEMP 11    -> s3          |  Current: {}
-------------------------------------
-
-Procedure: Fac_ComputeFac
-------------------------------------
-pos=1    ADD     TEMP 0     -> s1          |  Current: {TEMP 0=s1}
-pos=1    ADD     TEMP 1     -> s0          |  Current: {TEMP 1=s0, TEMP 0=s1}
-pos=2    ADD     TEMP 3     -> s2          |  Current: {TEMP 3=s2, TEMP 1=s0, TEMP 0=s1}
-pos=3    ADD     TEMP 4     -> s3          |  Current: {TEMP 3=s2, TEMP 1=s0, TEMP 0=s1, TEMP 4=s3}
-pos=5    REMOVE  TEMP 3     -> s2          |  Current: {TEMP 1=s0, TEMP 0=s1, TEMP 4=s3}
-pos=5    REMOVE  TEMP 4     -> s3          |  Current: {TEMP 1=s0, TEMP 0=s1}
-pos=5    ADD     TEMP 6     -> s3          |  Current: {TEMP 1=s0, TEMP 0=s1, TEMP 6=s3}
-pos=6    ADD     TEMP 5     -> s2          |  Current: {TEMP 1=s0, TEMP 0=s1, TEMP 6=s3, TEMP 5=s2}
-pos=8    REMOVE  TEMP 6     -> s3          |  Current: {TEMP 1=s0, TEMP 0=s1, TEMP 5=s2}
-pos=8    ADD     TEMP 7     -> s3          |  Current: {TEMP 1=s0, TEMP 0=s1, TEMP 7=s3, TEMP 5=s2}
-pos=9    REMOVE  TEMP 0     -> s1          |  Current: {TEMP 1=s0, TEMP 7=s3, TEMP 5=s2}
-pos=9    ADD     TEMP 8     -> s1          |  Current: {TEMP 1=s0, TEMP 8=s1, TEMP 7=s3, TEMP 5=s2}
-pos=10   ADD     TEMP 9     -> s4          |  Current: {TEMP 1=s0, TEMP 9=s4, TEMP 8=s1, TEMP 7=s3, TEMP 5=s2}
-pos=11   ADD     TEMP 10    -> s1          |  Current: {TEMP 10=s1, TEMP 1=s0, TEMP 9=s4, TEMP 8=s1, TEMP 7=s3, TEMP 5=s2}
-pos=11   REMOVE  TEMP 8     -> s1          |  Current: {TEMP 10=s1, TEMP 1=s0, TEMP 9=s4, TEMP 7=s3, TEMP 5=s2}
-pos=12   ADD     TEMP 11    -> s5          |  Current: {TEMP 10=s1, TEMP 1=s0, TEMP 11=s5, TEMP 9=s4, TEMP 7=s3, TEMP 5=s2}
-pos=13   REMOVE  TEMP 10    -> s1          |  Current: {TEMP 1=s0, TEMP 11=s5, TEMP 9=s4, TEMP 7=s3, TEMP 5=s2}
-pos=13   ADD     TEMP 12    -> s1          |  Current: {TEMP 1=s0, TEMP 12=s1, TEMP 11=s5, TEMP 9=s4, TEMP 7=s3, TEMP 5=s2}
-pos=14   REMOVE  TEMP 11    -> s5          |  Current: {TEMP 1=s0, TEMP 12=s1, TEMP 9=s4, TEMP 7=s3, TEMP 5=s2}
-pos=14   ADD     TEMP 13    -> s5          |  Current: {TEMP 1=s0, TEMP 13=s5, TEMP 12=s1, TEMP 9=s4, TEMP 7=s3, TEMP 5=s2}
-pos=14   REMOVE  TEMP 7     -> s3          |  Current: {TEMP 1=s0, TEMP 13=s5, TEMP 12=s1, TEMP 9=s4, TEMP 5=s2}
-pos=14   REMOVE  TEMP 9     -> s4          |  Current: {TEMP 1=s0, TEMP 13=s5, TEMP 12=s1, TEMP 5=s2}
-pos=15   REMOVE  TEMP 1     -> s0          |  Current: {TEMP 13=s5, TEMP 12=s1, TEMP 5=s2}
-pos=15   REMOVE  TEMP 12    -> s1          |  Current: {TEMP 13=s5, TEMP 5=s2}
-pos=16   REMOVE  TEMP 13    -> s5          |  Current: {TEMP 5=s2}
-pos=17   REMOVE  TEMP 5     -> s2          |  Current: {}
-------------------------------------
-
 MAIN [0][10][2]
 MOVE s0 4
 MOVE s1 HALLOCATE s0
@@ -117,22 +12,92 @@ MOVE s0 s1
 HLOAD s1 s0 0
 HLOAD s2 s1 0
 MOVE s1 10
-MOVE s3 TO BE DONE
+ASTORE SPILLEDARG 0 t0
+ASTORE SPILLEDARG 1 t1
+ASTORE SPILLEDARG 2 t2
+ASTORE SPILLEDARG 3 t3
+ASTORE SPILLEDARG 4 t4
+ASTORE SPILLEDARG 5 t5
+ASTORE SPILLEDARG 6 t6
+ASTORE SPILLEDARG 7 t7
+ASTORE SPILLEDARG 8 t8
+ASTORE SPILLEDARG 9 t9
+  MOVE a0 s0
+  MOVE a1 s1
+CALL s2
+ALOAD t0 SPILLEDARG 0
+ALOAD t1 SPILLEDARG 1
+ALOAD t2 SPILLEDARG 2
+ALOAD t3 SPILLEDARG 3
+ALOAD t4 SPILLEDARG 4
+ALOAD t5 SPILLEDARG 5
+ALOAD t6 SPILLEDARG 6
+ALOAD t7 SPILLEDARG 7
+ALOAD t8 SPILLEDARG 8
+ALOAD t9 SPILLEDARG 9
+MOVE s3 v0
+PRINT s3
 END
 Fac_ComputeFac[2][18][2]
+ASTORE SPILLEDARG 10 s0
+ASTORE SPILLEDARG 11 s1
+ASTORE SPILLEDARG 12 s2
+ASTORE SPILLEDARG 13 s3
+ASTORE SPILLEDARG 14 s4
+ASTORE SPILLEDARG 15 s5
+ASTORE SPILLEDARG 16 s6
+ASTORE SPILLEDARG 17 s7
+MOVE s0 a1
+MOVE s1 a0
 MOVE s2 0
 MOVE s3 LE s0 s2
+L2
 CJUMP s3 L2
 MOVE s3 1
 MOVE s2 s3
+L3
 JUMP L3
+L2
 MOVE s3 s1
 HLOAD s1 s3 0
 HLOAD s4 s1 0
 MOVE s1 1
 MOVE s5 MINUS s0 s1
-MOVE s1 TO BE DONE
+ASTORE SPILLEDARG 0 t0
+ASTORE SPILLEDARG 1 t1
+ASTORE SPILLEDARG 2 t2
+ASTORE SPILLEDARG 3 t3
+ASTORE SPILLEDARG 4 t4
+ASTORE SPILLEDARG 5 t5
+ASTORE SPILLEDARG 6 t6
+ASTORE SPILLEDARG 7 t7
+ASTORE SPILLEDARG 8 t8
+ASTORE SPILLEDARG 9 t9
+  MOVE a0 s3
+  MOVE a1 s5
+CALL s4
+ALOAD t0 SPILLEDARG 0
+ALOAD t1 SPILLEDARG 1
+ALOAD t2 SPILLEDARG 2
+ALOAD t3 SPILLEDARG 3
+ALOAD t4 SPILLEDARG 4
+ALOAD t5 SPILLEDARG 5
+ALOAD t6 SPILLEDARG 6
+ALOAD t7 SPILLEDARG 7
+ALOAD t8 SPILLEDARG 8
+ALOAD t9 SPILLEDARG 9
+MOVE s1 v0
 MOVE s5 TIMES s0 s1
 MOVE s2 s5
+L3
 NOOP
+  MOVE v0 s2
+ALOAD s0 SPILLEDARG 10
+ALOAD s1 SPILLEDARG 11
+ALOAD s2 SPILLEDARG 12
+ALOAD s3 SPILLEDARG 13
+ALOAD s4 SPILLEDARG 14
+ALOAD s5 SPILLEDARG 15
+ALOAD s6 SPILLEDARG 16
+ALOAD s7 SPILLEDARG 17
 END

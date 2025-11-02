@@ -125,7 +125,17 @@ public class CodeGeneration implements GJVisitor<String, String> {
                   + (procStackSlots.get(currProcedure) + 18 + Math.max(Integer.parseInt(id) - 4, 0))
                   + "][" + procedureIntervals.get(currProcedure).maxCallArgs + "]");
       currPos = 1;
+
+      for (int i = 0; i < 8; i++) {
+         System.out.println("ASTORE SPILLEDARG " + (i + 10) + " s" + i);
+      }
+
       n.f4.accept(this, argu);
+
+      for (int i = 0; i < 8; i++) {
+         System.out.println("ALOAD s" + i + " SPILLEDARG " + (i + 10));
+      }
+
       System.out.println("END");
       return _ret;
    }
@@ -247,6 +257,7 @@ public class CodeGeneration implements GJVisitor<String, String> {
       String _ret = null;
       n.f0.accept(this, argu);
       String exp = n.f1.accept(this, argu);
+      System.out.println("PRINT " + exp);
       return _ret;
    }
 
@@ -272,10 +283,10 @@ public class CodeGeneration implements GJVisitor<String, String> {
       n.f0.accept(this, argu);
       n.f1.accept(this, argu);
       n.f2.accept(this, argu);
-      n.f3.accept(this, argu);
+      String retExp = n.f3.accept(this, argu);
       n.f4.accept(this, argu);
-      String result = "TO BE DONE";
-      return result;
+      System.out.println("  MOVE v0 " + retExp);
+      return "v0";
    }
 
    /**
@@ -289,10 +300,35 @@ public class CodeGeneration implements GJVisitor<String, String> {
       n.f0.accept(this, argu);
       String exp = n.f1.accept(this, argu);
       n.f2.accept(this, argu);
-      n.f3.accept(this, argu);
+
+      for (int i = 0; i < 10; i++) {
+         System.out.println("ASTORE SPILLEDARG " + i + " t" + i);
+      }
+
+      // Collect arguments
+      List<String> args = new ArrayList<>();
+      if (n.f3.present()) {
+         for (Enumeration<Node> e = n.f3.elements(); e.hasMoreElements();) {
+            String temp = e.nextElement().accept(this, argu);
+            args.add(temp);
+         }
+      }
+      // Move first 4 args to a0-a3, rest go to passarg
+      for (int i = 0; i < args.size(); i++) {
+         if (i < 4) {
+            System.out.println("  MOVE a" + i + " " + args.get(i));
+         } else {
+            System.out.println("  PASSARG " + (i - 4) + " " + args.get(i));
+         }
+      }
+
       n.f4.accept(this, argu);
-      String result = "TO BE DONE";
-      return result;
+      String result = "CALL " + exp;
+      System.out.println(result);
+      for (int i = 0; i < 10; i++) {
+         System.out.println("ALOAD t" + i + " SPILLEDARG " + i);
+      }
+      return "v0";
    }
 
    /**
@@ -368,6 +404,9 @@ public class CodeGeneration implements GJVisitor<String, String> {
     */
    public String visit(Label n, String argu) {
       n.f0.accept(this, argu);
+      String id = n.f0.toString();
+      if (id.startsWith("L"))
+         System.out.println(id);
       return n.f0.toString();
    }
 

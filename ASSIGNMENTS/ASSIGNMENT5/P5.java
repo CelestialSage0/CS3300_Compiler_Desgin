@@ -15,31 +15,16 @@ public class P5 {
             LivenessAnalysis livenessAnalyzer = new LivenessAnalysis();
             root.accept(livenessAnalyzer, null);
 
-            System.out.println("\n===============================");
-            System.out.println("   LIVENESS ANALYSIS RESULTS   ");
-            System.out.println("===============================\n");
-
             for (var entry : livenessAnalyzer.procedureIntervals.entrySet()) {
                 String procName = entry.getKey();
                 var procIntervals = entry.getValue();
 
-                System.out.println("Procedure: " + procName);
-                System.out.println("------------------------------------");
-                System.out.printf("%-10s %-10s %-10s\n", "TEMP", "Start", "End");
-                System.out.println("------------------------------------");
-
                 for (var intervalEntry : procIntervals.tempIntervals.entrySet()) {
                     var interval = intervalEntry.getValue();
-                    System.out.printf("%-10s %-10d %-10d\n",
-                            interval.tempId, interval.firstUse, interval.lastUse);
                 }
-                System.out.println("------------------------------------\n");
             }
 
             // ===== Phase 2: Register Allocation =====
-            System.out.println("\n===============================");
-            System.out.println("   LINEAR SCAN ALLOCATION TRACE");
-            System.out.println("===============================\n");
 
             RegisterAllocator allocator = new RegisterAllocator();
 
@@ -51,9 +36,6 @@ public class P5 {
             for (var entry : livenessAnalyzer.procedureIntervals.entrySet()) {
                 String procName = entry.getKey();
                 var procIntervals = entry.getValue();
-
-                System.out.println("Procedure: " + procName);
-                System.out.println("------------------------------------");
 
                 List<AllocationChange> changes = allocator.allocate(procIntervals);
                 procChanges.put(procName, changes);
@@ -73,9 +55,6 @@ public class P5 {
 
                     // Save a copy at this position
                     allocationTimeline.put(change.position, new HashMap<>(currentAlloc));
-
-                    System.out.printf("pos=%-4d %-7s %-10s -> %-10s  |  Current: %s\n",
-                            change.position, change.kind, change.tempId, change.where, currentAlloc);
                 }
 
                 // ---- Fill missing positions ----
@@ -98,8 +77,6 @@ public class P5 {
                         .distinct()
                         .count();
                 procStackSlots.put(procName, stackSlots);
-
-                System.out.println("------------------------------------\n");
             }
 
             // ===== Phase 3: (Optional) Code Generation =====
@@ -109,8 +86,6 @@ public class P5 {
                     procStackSlots);
 
             root.accept(codeGen, null);
-            // System.out.print(codeGen.getOutput());
-
         } catch (ParseException e) {
             System.err.println("Parse error: " + e.getMessage());
             System.exit(1);
