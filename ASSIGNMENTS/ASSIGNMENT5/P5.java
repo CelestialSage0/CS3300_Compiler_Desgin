@@ -10,72 +10,69 @@ public class P5 {
         try {
             Node root = new microIRParser(System.in).Goal();
 
-            LivenessAnalysis livenessAnalyzer = new LivenessAnalysis();
-            root.accept(livenessAnalyzer, null);
+            LivenessAnalysis LA = new LivenessAnalysis();
+            root.accept(LA, null);
 
-            for (var entry : livenessAnalyzer.procedureIntervals.entrySet()) {
-                String procName = entry.getKey();
-                var procIntervals = entry.getValue();
-
-                for (var intervalEntry : procIntervals.tempIntervals.entrySet()) {
-                    var interval = intervalEntry.getValue();
-                }
-            }
-
-            RegisterAllocator allocator = new RegisterAllocator();
+            RegisterAllocator RA = new RegisterAllocator();
 
             Map<String, List<AllocationChange>> procChanges = new HashMap<>();
-            Map<String, Map<Integer, Map<String, String>>> procAllocationTimeline = new HashMap<>();
-            Map<String, Integer> procStackSlots = new HashMap<>();
+            Map<String, Map<Integer, Map<String, String>>> timestamps = new HashMap<>();
+            Map<String, Integer> stack = new HashMap<>();
 
-            for (var entry : livenessAnalyzer.procedureIntervals.entrySet()) {
-                String procName = entry.getKey();
-                var procIntervals = entry.getValue();
+            for (String procName : LA.procedureIntervals.keySet()) {
+                var procIntervals = LA.procedureIntervals.get(procName);
 
-                List<AllocationChange> changes = allocator.allocate(procIntervals);
+                List<AllocationChange> changes = RA.allocate(procIntervals);
                 procChanges.put(procName, changes);
 
                 Map<Integer, Map<String, String>> allocationTimeline = new HashMap<>();
                 Map<String, String> currentAlloc = new HashMap<>();
 
                 int maxPos = 0;
-                for (AllocationChange change : changes) {
-                    maxPos = Math.max(maxPos, change.position);
 
-                    switch (change.kind) {
-                        case ADD, SPILL -> currentAlloc.put(change.tempId, change.where);
-                        case REMOVE -> currentAlloc.remove(change.tempId);
+                for (AllocationChange change : changes) {
+                    if (change.position > maxPos) {
+                        maxPos = change.position;
+                    }
+
+                    if (change.kind == ChangeKind.ADD || change.kind == ChangeKind.SPILL) {
+                        currentAlloc.put(change.tempId, change.where);
+                    } else if (change.kind == ChangeKind.REMOVE) {
+                        currentAlloc.remove(change.tempId);
                     }
 
                     allocationTimeline.put(change.position, new HashMap<>(currentAlloc));
                 }
 
-                Map<String, String> lastState = new HashMap<>();
-                for (int i = 1; i <= maxPos; i++) {
-                    Map<String, String> stateAtPos = allocationTimeline.get(i);
-                    if (stateAtPos != null) {
-                        lastState = new HashMap<>(stateAtPos);
+                Map<String, String> lastAlloc = new HashMap<>();
+                for (int pos = 1; pos <= maxPos; pos++) {
+                    Map<String, String> atPos = allocationTimeline.get(pos);
+
+                    if (atPos != null) {
+                        lastAlloc = new HashMap<>(atPos);
                     } else {
-                        allocationTimeline.put(i, new HashMap<>(lastState));
+                        allocationTimeline.put(pos, new HashMap<>(lastAlloc));
                     }
                 }
 
-                procAllocationTimeline.put(procName, allocationTimeline);
+                timestamps.put(procName, allocationTimeline);
 
-                int stackSlots = (int) changes.stream()
-                        .filter(c -> c.kind == ChangeKind.SPILL)
-                        .map(c -> c.where)
-                        .distinct()
-                        .count();
-                procStackSlots.put(procName, stackSlots);
+                Set<String> spill = new HashSet<>();
+                for (AllocationChange c : changes) {
+                    if (c.kind == ChangeKind.SPILL) {
+                        spill.add(c.where);
+                    }
+                }
+                stack.put(procName, spill.size());
             }
 
-            CodeGeneration codeGen = new CodeGeneration(
-                    livenessAnalyzer.procedureIntervals,
-                    procAllocationTimeline,
-                    procStackSlots);
+            CodeGeneration CG = new CodeGeneration(
+                    LA.procedureIntervals,
+                    timestamps,
+                    stack);
 
-            root.accept(codeGen, null);
+            root.accept(CG, null);
+
         } catch (ParseException e) {
             System.err.println("Parse error: " + e.getMessage());
             System.exit(1);

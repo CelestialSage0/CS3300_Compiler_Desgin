@@ -103,10 +103,8 @@ public class CodeGeneration implements GJVisitor<String, String> {
     */
    public String visit(StmtList n, String argu) {
       for (Node node : n.f0.nodes) {
-         // Each node is a LabelStmt pair
          NodeSequence pair = (NodeSequence) node;
 
-         // Check if there is a label (it's optional)
          if (pair.elementAt(0) instanceof NodeOptional) {
             NodeOptional opt = (NodeOptional) pair.elementAt(0);
             if (opt.present()) {
@@ -116,7 +114,6 @@ public class CodeGeneration implements GJVisitor<String, String> {
             }
          }
 
-         // Visit the statement
          pair.elementAt(1).accept(this, argu);
       }
       return null;
@@ -141,12 +138,10 @@ public class CodeGeneration implements GJVisitor<String, String> {
                   + "][" + procedureIntervals.get(currProcedure).maxCallArgs + "]");
       currPos = 1;
 
-      // Save callee-saved registers
       for (int i = 0; i < 8; i++) {
          System.out.println("ASTORE SPILLEDARG " + (i + 10) + " s" + i);
       }
 
-      // Load parameters from a registers into their allocated registers
       int numParams = Integer.parseInt(id);
       for (int i = 0; i < numParams && i < 4; i++) {
          String tempId = "TEMP " + i;
@@ -156,7 +151,6 @@ public class CodeGeneration implements GJVisitor<String, String> {
          }
       }
 
-      // Load parameters beyond a3 from SPILLEDARG (they were passed via stack)
       for (int i = 4; i < numParams; i++) {
          String tempId = "TEMP " + i;
          String allocatedReg = procAllocationTimeline.get(currProcedure).get(currPos).get(tempId);
@@ -341,7 +335,6 @@ public class CodeGeneration implements GJVisitor<String, String> {
          System.out.println("ASTORE SPILLEDARG " + i + " t" + i);
       }
 
-      // Collect arguments
       List<String> args = new ArrayList<>();
       if (n.f3.present()) {
          for (Enumeration<Node> e = n.f3.elements(); e.hasMoreElements();) {
@@ -349,7 +342,6 @@ public class CodeGeneration implements GJVisitor<String, String> {
             args.add(temp);
          }
       }
-      // Move first 4 args to a0-a3, rest go to passarg
       for (int i = 0; i < args.size(); i++) {
          if (i < 4) {
             System.out.println("  MOVE a" + i + " " + args.get(i));
