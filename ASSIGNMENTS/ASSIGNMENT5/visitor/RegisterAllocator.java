@@ -98,9 +98,6 @@ public class RegisterAllocator {
         Map<String, ActiveInfo> tempToActive = new HashMap<>();
         Map<String, Integer> spilledSlots = new HashMap<>(); // track spill slots
 
-        // helper to keep active sorted
-        Runnable resortActiveByEnd = () -> active.sort(Comparator.comparingInt(a -> a.interval.lastUse));
-
         for (TempInterval cur : intervals) {
             int curStart = cur.firstUse;
 
@@ -131,7 +128,7 @@ public class RegisterAllocator {
                 ActiveInfo info = new ActiveInfo(cur, reg, null);
                 active.add(info);
                 tempToActive.put(cur.tempId, info);
-                resortActiveByEnd.run();
+                active.sort(Comparator.comparingInt(a -> a.interval.lastUse));
                 changes.add(new AllocationChange(curStart, cur.tempId, AllocationChange.ChangeKind.ADD, reg));
             } else {
                 // No free registers → spill
@@ -155,7 +152,7 @@ public class RegisterAllocator {
                     ActiveInfo curInfo = new ActiveInfo(cur, stolenReg, null);
                     active.add(curInfo);
                     tempToActive.put(cur.tempId, curInfo);
-                    resortActiveByEnd.run();
+                    active.sort(Comparator.comparingInt(a -> a.interval.lastUse));
 
                     changes.add(new AllocationChange(curStart, cur.tempId, AllocationChange.ChangeKind.ADD, stolenReg));
                 } else {

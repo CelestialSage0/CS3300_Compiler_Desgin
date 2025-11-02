@@ -47,109 +47,92 @@ TEMP 4     3          4
 
 Procedure: MAIN
 ------------------------------------
-pos=2    ADD     TEMP 2     -> s0        
-  Current allocation: { TEMP 2=s0 }
-pos=3    ADD     TEMP 3     -> s1        
-  Current allocation: { TEMP 2=s0 TEMP 3=s1 }
-pos=4    ADD     TEMP 1     -> s0        
-  Current allocation: { TEMP 1=s0 TEMP 2=s0 TEMP 3=s1 }
-pos=4    REMOVE  TEMP 2     -> s0        
-  Current allocation: { TEMP 1=s0 TEMP 3=s1 }
-pos=5    REMOVE  TEMP 3     -> s1        
-  Current allocation: { TEMP 1=s0 }
-pos=5    ADD     TEMP 5     -> s1        
-  Current allocation: { TEMP 1=s0 TEMP 5=s1 }
-pos=6    ADD     TEMP 6     -> s2        
-  Current allocation: { TEMP 1=s0 TEMP 5=s1 TEMP 6=s2 }
-pos=7    ADD     TEMP 4     -> s1        
-  Current allocation: { TEMP 1=s0 TEMP 4=s1 TEMP 5=s1 TEMP 6=s2 }
-pos=7    REMOVE  TEMP 5     -> s1        
-  Current allocation: { TEMP 1=s0 TEMP 4=s1 TEMP 6=s2 }
-pos=8    REMOVE  TEMP 6     -> s2        
-  Current allocation: { TEMP 1=s0 TEMP 4=s1 }
-pos=8    ADD     TEMP 7     -> s2        
-  Current allocation: { TEMP 1=s0 TEMP 4=s1 TEMP 7=s2 }
-pos=11   ADD     TEMP 0     -> s0        
-  Current allocation: { TEMP 0=s0 TEMP 1=s0 TEMP 4=s1 TEMP 7=s2 }
-pos=11   REMOVE  TEMP 1     -> s0        
-  Current allocation: { TEMP 0=s0 TEMP 4=s1 TEMP 7=s2 }
-pos=11   REMOVE  TEMP 7     -> s2        
-  Current allocation: { TEMP 0=s0 TEMP 4=s1 }
-pos=12   REMOVE  TEMP 4     -> s1        
-  Current allocation: { TEMP 0=s0 }
-pos=12   ADD     TEMP 8     -> s1        
-  Current allocation: { TEMP 0=s0 TEMP 8=s1 }
-pos=13   ADD     TEMP 9     -> s2        
-  Current allocation: { TEMP 0=s0 TEMP 8=s1 TEMP 9=s2 }
-pos=14   ADD     TEMP 10    -> s1        
-  Current allocation: { TEMP 0=s0 TEMP 10=s1 TEMP 8=s1 TEMP 9=s2 }
-pos=14   REMOVE  TEMP 8     -> s1        
-  Current allocation: { TEMP 0=s0 TEMP 10=s1 TEMP 9=s2 }
-pos=15   ADD     TEMP 11    -> s3        
-  Current allocation: { TEMP 0=s0 TEMP 10=s1 TEMP 11=s3 TEMP 9=s2 }
-pos=16   REMOVE  TEMP 0     -> s0        
-  Current allocation: { TEMP 10=s1 TEMP 11=s3 TEMP 9=s2 }
-pos=16   REMOVE  TEMP 10    -> s1        
-  Current allocation: { TEMP 11=s3 TEMP 9=s2 }
-pos=16   REMOVE  TEMP 9     -> s2        
-  Current allocation: { TEMP 11=s3 }
-pos=17   REMOVE  TEMP 11    -> s3        
-  Current allocation: { }
+pos=2    ADD     TEMP 2     -> s0          |  Current: {TEMP 2=s0}
+pos=3    ADD     TEMP 3     -> s1          |  Current: {TEMP 3=s1, TEMP 2=s0}
+pos=4    ADD     TEMP 1     -> s0          |  Current: {TEMP 3=s1, TEMP 2=s0, TEMP 1=s0}
+pos=4    REMOVE  TEMP 2     -> s0          |  Current: {TEMP 3=s1, TEMP 1=s0}
+pos=5    REMOVE  TEMP 3     -> s1          |  Current: {TEMP 1=s0}
+pos=5    ADD     TEMP 5     -> s1          |  Current: {TEMP 1=s0, TEMP 5=s1}
+pos=6    ADD     TEMP 6     -> s2          |  Current: {TEMP 1=s0, TEMP 6=s2, TEMP 5=s1}
+pos=7    ADD     TEMP 4     -> s1          |  Current: {TEMP 1=s0, TEMP 6=s2, TEMP 5=s1, TEMP 4=s1}
+pos=7    REMOVE  TEMP 5     -> s1          |  Current: {TEMP 1=s0, TEMP 6=s2, TEMP 4=s1}
+pos=8    REMOVE  TEMP 6     -> s2          |  Current: {TEMP 1=s0, TEMP 4=s1}
+pos=8    ADD     TEMP 7     -> s2          |  Current: {TEMP 1=s0, TEMP 7=s2, TEMP 4=s1}
+pos=11   ADD     TEMP 0     -> s0          |  Current: {TEMP 1=s0, TEMP 0=s0, TEMP 7=s2, TEMP 4=s1}
+pos=11   REMOVE  TEMP 1     -> s0          |  Current: {TEMP 0=s0, TEMP 7=s2, TEMP 4=s1}
+pos=11   REMOVE  TEMP 7     -> s2          |  Current: {TEMP 0=s0, TEMP 4=s1}
+pos=12   REMOVE  TEMP 4     -> s1          |  Current: {TEMP 0=s0}
+pos=12   ADD     TEMP 8     -> s1          |  Current: {TEMP 0=s0, TEMP 8=s1}
+pos=13   ADD     TEMP 9     -> s2          |  Current: {TEMP 0=s0, TEMP 9=s2, TEMP 8=s1}
+pos=14   ADD     TEMP 10    -> s1          |  Current: {TEMP 10=s1, TEMP 0=s0, TEMP 9=s2, TEMP 8=s1}
+pos=14   REMOVE  TEMP 8     -> s1          |  Current: {TEMP 10=s1, TEMP 0=s0, TEMP 9=s2}
+pos=15   ADD     TEMP 11    -> s3          |  Current: {TEMP 10=s1, TEMP 0=s0, TEMP 11=s3, TEMP 9=s2}
+pos=16   REMOVE  TEMP 0     -> s0          |  Current: {TEMP 10=s1, TEMP 11=s3, TEMP 9=s2}
+pos=16   REMOVE  TEMP 10    -> s1          |  Current: {TEMP 11=s3, TEMP 9=s2}
+pos=16   REMOVE  TEMP 9     -> s2          |  Current: {TEMP 11=s3}
+pos=17   REMOVE  TEMP 11    -> s3          |  Current: {}
 ------------------------------------
 
 Procedure: Fac_ComputeFac
 ------------------------------------
-pos=1    ADD     TEMP 0     -> s1        
-  Current allocation: { TEMP 0=s1 }
-pos=1    ADD     TEMP 1     -> s0        
-  Current allocation: { TEMP 0=s1 TEMP 1=s0 }
-pos=2    ADD     TEMP 3     -> s2        
-  Current allocation: { TEMP 0=s1 TEMP 1=s0 TEMP 3=s2 }
-pos=3    ADD     TEMP 4     -> s3        
-  Current allocation: { TEMP 0=s1 TEMP 1=s0 TEMP 3=s2 TEMP 4=s3 }
-pos=5    REMOVE  TEMP 3     -> s2        
-  Current allocation: { TEMP 0=s1 TEMP 1=s0 TEMP 4=s3 }
-pos=5    REMOVE  TEMP 4     -> s3        
-  Current allocation: { TEMP 0=s1 TEMP 1=s0 }
-pos=5    ADD     TEMP 6     -> s3        
-  Current allocation: { TEMP 0=s1 TEMP 1=s0 TEMP 6=s3 }
-pos=6    ADD     TEMP 5     -> s2        
-  Current allocation: { TEMP 0=s1 TEMP 1=s0 TEMP 5=s2 TEMP 6=s3 }
-pos=8    REMOVE  TEMP 6     -> s3        
-  Current allocation: { TEMP 0=s1 TEMP 1=s0 TEMP 5=s2 }
-pos=8    ADD     TEMP 7     -> s3        
-  Current allocation: { TEMP 0=s1 TEMP 1=s0 TEMP 5=s2 TEMP 7=s3 }
-pos=9    REMOVE  TEMP 0     -> s1        
-  Current allocation: { TEMP 1=s0 TEMP 5=s2 TEMP 7=s3 }
-pos=9    ADD     TEMP 8     -> s1        
-  Current allocation: { TEMP 1=s0 TEMP 5=s2 TEMP 7=s3 TEMP 8=s1 }
-pos=10   ADD     TEMP 9     -> s4        
-  Current allocation: { TEMP 1=s0 TEMP 5=s2 TEMP 7=s3 TEMP 8=s1 TEMP 9=s4 }
-pos=11   ADD     TEMP 10    -> s1        
-  Current allocation: { TEMP 1=s0 TEMP 10=s1 TEMP 5=s2 TEMP 7=s3 TEMP 8=s1 TEMP 9=s4 }
-pos=11   REMOVE  TEMP 8     -> s1        
-  Current allocation: { TEMP 1=s0 TEMP 10=s1 TEMP 5=s2 TEMP 7=s3 TEMP 9=s4 }
-pos=12   ADD     TEMP 11    -> s5        
-  Current allocation: { TEMP 1=s0 TEMP 10=s1 TEMP 11=s5 TEMP 5=s2 TEMP 7=s3 TEMP 9=s4 }
-pos=13   REMOVE  TEMP 10    -> s1        
-  Current allocation: { TEMP 1=s0 TEMP 11=s5 TEMP 5=s2 TEMP 7=s3 TEMP 9=s4 }
-pos=13   ADD     TEMP 12    -> s1        
-  Current allocation: { TEMP 1=s0 TEMP 11=s5 TEMP 12=s1 TEMP 5=s2 TEMP 7=s3 TEMP 9=s4 }
-pos=14   REMOVE  TEMP 11    -> s5        
-  Current allocation: { TEMP 1=s0 TEMP 12=s1 TEMP 5=s2 TEMP 7=s3 TEMP 9=s4 }
-pos=14   ADD     TEMP 13    -> s5        
-  Current allocation: { TEMP 1=s0 TEMP 12=s1 TEMP 13=s5 TEMP 5=s2 TEMP 7=s3 TEMP 9=s4 }
-pos=14   REMOVE  TEMP 7     -> s3        
-  Current allocation: { TEMP 1=s0 TEMP 12=s1 TEMP 13=s5 TEMP 5=s2 TEMP 9=s4 }
-pos=14   REMOVE  TEMP 9     -> s4        
-  Current allocation: { TEMP 1=s0 TEMP 12=s1 TEMP 13=s5 TEMP 5=s2 }
-pos=15   REMOVE  TEMP 1     -> s0        
-  Current allocation: { TEMP 12=s1 TEMP 13=s5 TEMP 5=s2 }
-pos=15   REMOVE  TEMP 12    -> s1        
-  Current allocation: { TEMP 13=s5 TEMP 5=s2 }
-pos=16   REMOVE  TEMP 13    -> s5        
-  Current allocation: { TEMP 5=s2 }
-pos=17   REMOVE  TEMP 5     -> s2        
-  Current allocation: { }
+pos=1    ADD     TEMP 0     -> s1          |  Current: {TEMP 0=s1}
+pos=1    ADD     TEMP 1     -> s0          |  Current: {TEMP 1=s0, TEMP 0=s1}
+pos=2    ADD     TEMP 3     -> s2          |  Current: {TEMP 3=s2, TEMP 1=s0, TEMP 0=s1}
+pos=3    ADD     TEMP 4     -> s3          |  Current: {TEMP 3=s2, TEMP 1=s0, TEMP 0=s1, TEMP 4=s3}
+pos=5    REMOVE  TEMP 3     -> s2          |  Current: {TEMP 1=s0, TEMP 0=s1, TEMP 4=s3}
+pos=5    REMOVE  TEMP 4     -> s3          |  Current: {TEMP 1=s0, TEMP 0=s1}
+pos=5    ADD     TEMP 6     -> s3          |  Current: {TEMP 1=s0, TEMP 0=s1, TEMP 6=s3}
+pos=6    ADD     TEMP 5     -> s2          |  Current: {TEMP 1=s0, TEMP 0=s1, TEMP 6=s3, TEMP 5=s2}
+pos=8    REMOVE  TEMP 6     -> s3          |  Current: {TEMP 1=s0, TEMP 0=s1, TEMP 5=s2}
+pos=8    ADD     TEMP 7     -> s3          |  Current: {TEMP 1=s0, TEMP 0=s1, TEMP 7=s3, TEMP 5=s2}
+pos=9    REMOVE  TEMP 0     -> s1          |  Current: {TEMP 1=s0, TEMP 7=s3, TEMP 5=s2}
+pos=9    ADD     TEMP 8     -> s1          |  Current: {TEMP 1=s0, TEMP 8=s1, TEMP 7=s3, TEMP 5=s2}
+pos=10   ADD     TEMP 9     -> s4          |  Current: {TEMP 1=s0, TEMP 9=s4, TEMP 8=s1, TEMP 7=s3, TEMP 5=s2}
+pos=11   ADD     TEMP 10    -> s1          |  Current: {TEMP 10=s1, TEMP 1=s0, TEMP 9=s4, TEMP 8=s1, TEMP 7=s3, TEMP 5=s2}
+pos=11   REMOVE  TEMP 8     -> s1          |  Current: {TEMP 10=s1, TEMP 1=s0, TEMP 9=s4, TEMP 7=s3, TEMP 5=s2}
+pos=12   ADD     TEMP 11    -> s5          |  Current: {TEMP 10=s1, TEMP 1=s0, TEMP 11=s5, TEMP 9=s4, TEMP 7=s3, TEMP 5=s2}
+pos=13   REMOVE  TEMP 10    -> s1          |  Current: {TEMP 1=s0, TEMP 11=s5, TEMP 9=s4, TEMP 7=s3, TEMP 5=s2}
+pos=13   ADD     TEMP 12    -> s1          |  Current: {TEMP 1=s0, TEMP 12=s1, TEMP 11=s5, TEMP 9=s4, TEMP 7=s3, TEMP 5=s2}
+pos=14   REMOVE  TEMP 11    -> s5          |  Current: {TEMP 1=s0, TEMP 12=s1, TEMP 9=s4, TEMP 7=s3, TEMP 5=s2}
+pos=14   ADD     TEMP 13    -> s5          |  Current: {TEMP 1=s0, TEMP 13=s5, TEMP 12=s1, TEMP 9=s4, TEMP 7=s3, TEMP 5=s2}
+pos=14   REMOVE  TEMP 7     -> s3          |  Current: {TEMP 1=s0, TEMP 13=s5, TEMP 12=s1, TEMP 9=s4, TEMP 5=s2}
+pos=14   REMOVE  TEMP 9     -> s4          |  Current: {TEMP 1=s0, TEMP 13=s5, TEMP 12=s1, TEMP 5=s2}
+pos=15   REMOVE  TEMP 1     -> s0          |  Current: {TEMP 13=s5, TEMP 12=s1, TEMP 5=s2}
+pos=15   REMOVE  TEMP 12    -> s1          |  Current: {TEMP 13=s5, TEMP 5=s2}
+pos=16   REMOVE  TEMP 13    -> s5          |  Current: {TEMP 5=s2}
+pos=17   REMOVE  TEMP 5     -> s2          |  Current: {}
 ------------------------------------
 
+MAIN [0][10][2]
+MOVE s0 4
+MOVE s1 HALLOCATE s0
+MOVE s0 s1
+MOVE s1 4
+MOVE s2 HALLOCATE s1
+MOVE s1 s2
+MOVE s2 Fac_ComputeFac
+HSTORE s0 0 s2
+HSTORE s1 0 s0
+MOVE s0 s1
+HLOAD s1 s0 0
+HLOAD s2 s1 0
+MOVE s1 10
+MOVE s3 TO BE DONE
+END
+Fac_ComputeFac[2][18][2]
+MOVE s2 0
+MOVE s3 LE s0 s2
+CJUMP s3 L2
+MOVE s3 1
+MOVE s2 s3
+JUMP L3
+MOVE s3 s1
+HLOAD s1 s3 0
+HLOAD s4 s1 0
+MOVE s1 1
+MOVE s5 MINUS s0 s1
+MOVE s1 TO BE DONE
+MOVE s5 TIMES s0 s1
+MOVE s2 s5
+NOOP
+END
