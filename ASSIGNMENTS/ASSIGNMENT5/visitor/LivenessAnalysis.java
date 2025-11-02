@@ -71,10 +71,13 @@ public class LivenessAnalysis implements GJVisitor<String, String> {
       }
    }
 
-   // Structure to store intervals for each procedure
+   // Structure to store intervals and metadata for each procedure
    public static class ProcedureIntervals {
       public String procedureName;
       public Map<String, TempInterval> tempIntervals = new HashMap<>();
+
+      public int numParams = 0;
+      public int maxCallArgs = 0;
 
       public ProcedureIntervals(String name) {
          this.procedureName = name;
@@ -130,9 +133,20 @@ public class LivenessAnalysis implements GJVisitor<String, String> {
       String proc = n.f0.accept(this, argu);
       currPos = 1;
       currProcedure = new ProcedureIntervals(proc);
+
       n.f1.accept(this, argu);
       String str = n.f2.accept(this, argu);
       int params = Integer.parseInt(str);
+      currProcedure.numParams = params;
+
+      for (int i = 0; i < params; i++) {
+         String t = "TEMP " + i;
+         TempInterval ti = new TempInterval(t);
+         ti.definition = currPos;
+         ti.firstUse = currPos;
+         ti.lastUse = currPos;
+         currProcedure.tempIntervals.put(t, ti);
+      }
 
       n.f3.accept(this, argu);
       n.f4.accept(this, argu);
@@ -157,110 +171,69 @@ public class LivenessAnalysis implements GJVisitor<String, String> {
       return _ret;
    }
 
-   /**
-    * f0 -> "NOOP"
-    */
+   /** f0 -> "NOOP" */
    public String visit(NoOpStmt n, String argu) {
-      String _ret = null;
       n.f0.accept(this, argu);
-      return _ret;
+      return null;
    }
 
-   /**
-    * f0 -> "ERROR"
-    */
+   /** f0 -> "ERROR" */
    public String visit(ErrorStmt n, String argu) {
-      String _ret = null;
       n.f0.accept(this, argu);
-      return _ret;
+      return null;
    }
 
-   /**
-    * f0 -> "CJUMP"
-    * f1 -> Temp()
-    * f2 -> Label()
-    */
+   /** f0 -> "CJUMP" f1 -> Temp() f2 -> Label() */
    public String visit(CJumpStmt n, String argu) {
-      String _ret = null;
       n.f0.accept(this, argu);
       n.f1.accept(this, argu);
       n.f2.accept(this, argu);
-      return _ret;
+      return null;
    }
 
-   /**
-    * f0 -> "JUMP"
-    * f1 -> Label()
-    */
+   /** f0 -> "JUMP" f1 -> Label() */
    public String visit(JumpStmt n, String argu) {
-      String _ret = null;
       n.f0.accept(this, argu);
       n.f1.accept(this, argu);
-      return _ret;
+      return null;
    }
 
-   /**
-    * f0 -> "HSTORE"
-    * f1 -> Temp()
-    * f2 -> IntegerLiteral()
-    * f3 -> Temp()
-    */
+   /** f0 -> "HSTORE" f1 -> Temp() f2 -> IntegerLiteral() f3 -> Temp() */
    public String visit(HStoreStmt n, String argu) {
-      String _ret = null;
       n.f0.accept(this, argu);
       n.f1.accept(this, argu);
       n.f2.accept(this, argu);
       n.f3.accept(this, argu);
-      return _ret;
+      return null;
    }
 
-   /**
-    * f0 -> "HLOAD"
-    * f1 -> Temp()
-    * f2 -> Temp()
-    * f3 -> IntegerLiteral()
-    */
+   /** f0 -> "HLOAD" f1 -> Temp() f2 -> Temp() f3 -> IntegerLiteral() */
    public String visit(HLoadStmt n, String argu) {
-      String _ret = null;
       n.f0.accept(this, argu);
       String temp = n.f1.accept(this, argu);
-      TempInterval interval;
-      if (currProcedure.tempIntervals.containsKey(temp)) {
-         interval = currProcedure.tempIntervals.get(temp);
-      } else {
-         interval = new TempInterval(temp);
-         currProcedure.tempIntervals.put(temp, interval);
-      }
+      TempInterval interval = currProcedure.tempIntervals.getOrDefault(temp, new TempInterval(temp));
       interval.definition = currPos;
       interval.firstUse = Math.min(interval.firstUse, currPos);
       interval.lastUse = currPos;
+      currProcedure.tempIntervals.put(temp, interval);
+
       n.f2.accept(this, argu);
       n.f3.accept(this, argu);
-      return _ret;
+      return null;
    }
 
-   /**
-    * f0 -> "MOVE"
-    * f1 -> Temp()
-    * f2 -> Exp()
-    */
+   /** f0 -> "MOVE" f1 -> Temp() f2 -> Exp() */
    public String visit(MoveStmt n, String argu) {
-      String _ret = null;
       n.f0.accept(this, argu);
       String temp = n.f1.accept(this, argu);
-      TempInterval interval;
-      if (currProcedure.tempIntervals.containsKey(temp)) {
-         interval = currProcedure.tempIntervals.get(temp);
-      } else {
-         interval = new TempInterval(temp);
-         currProcedure.tempIntervals.put(temp, interval);
-
-      }
+      TempInterval interval = currProcedure.tempIntervals.getOrDefault(temp, new TempInterval(temp));
       interval.definition = currPos;
       interval.firstUse = Math.min(interval.firstUse, currPos);
       interval.lastUse = currPos;
+      currProcedure.tempIntervals.put(temp, interval);
+
       n.f2.accept(this, argu);
-      return _ret;
+      return null;
    }
 
    /**
@@ -268,39 +241,27 @@ public class LivenessAnalysis implements GJVisitor<String, String> {
     * f1 -> SimpleExp()
     */
    public String visit(PrintStmt n, String argu) {
-      String _ret = null;
       n.f0.accept(this, argu);
       n.f1.accept(this, argu);
-      return _ret;
+      return null;
    }
 
-   /**
-    * f0 -> Call()
-    * | HAllocate()
-    * | BinOp()
-    * | SimpleExp()
-    */
+   /** f0 -> Call() | HAllocate() | BinOp() | SimpleExp() */
    public String visit(Exp n, String argu) {
-      String _ret = null;
       n.f0.accept(this, argu);
-      return _ret;
+      return null;
    }
 
    /**
-    * f0 -> "BEGIN"
-    * f1 -> StmtList()
-    * f2 -> "RETURN"
-    * f3 -> SimpleExp()
-    * f4 -> "END"
+    * f0 -> "BEGIN" f1 -> StmtList() f2 -> "RETURN" f3 -> SimpleExp() f4 -> "END"
     */
    public String visit(StmtExp n, String argu) {
-      String _ret = null;
       n.f0.accept(this, argu);
       n.f1.accept(this, argu);
       n.f2.accept(this, argu);
       n.f3.accept(this, argu);
       n.f4.accept(this, argu);
-      return _ret;
+      return null;
    }
 
    /**
@@ -311,24 +272,35 @@ public class LivenessAnalysis implements GJVisitor<String, String> {
     * f4 -> ")"
     */
    public String visit(Call n, String argu) {
-      String _ret = null;
-      n.f0.accept(this, argu);
-      n.f1.accept(this, argu);
-      n.f2.accept(this, argu);
-      n.f3.accept(this, argu);
+      n.f0.accept(this, argu); // "CALL"
+      n.f1.accept(this, argu); // function being called
+      n.f2.accept(this, argu); // "("
+
+      int argCount = 0;
+      if (n.f3.present()) {
+         for (Enumeration<Node> e = n.f3.elements(); e.hasMoreElements();) {
+            String arg = e.nextElement().accept(this, argu);
+            if (arg != null && arg.startsWith("TEMP ")) {
+               TempInterval interval = currProcedure.tempIntervals.getOrDefault(arg, new TempInterval(arg));
+               interval.firstUse = Math.min(interval.firstUse, currPos);
+               interval.lastUse = Math.max(interval.lastUse, currPos);
+               currProcedure.tempIntervals.put(arg, interval);
+            }
+            argCount++;
+         }
+      }
+
+      currProcedure.maxCallArgs = Math.max(currProcedure.maxCallArgs, argCount);
+
       n.f4.accept(this, argu);
-      return _ret;
+      return null;
    }
 
-   /**
-    * f0 -> "HALLOCATE"
-    * f1 -> SimpleExp()
-    */
+   /** f0 -> "HALLOCATE" f1 -> SimpleExp() */
    public String visit(HAllocate n, String argu) {
-      String _ret = null;
       n.f0.accept(this, argu);
       n.f1.accept(this, argu);
-      return _ret;
+      return null;
    }
 
    /**
@@ -337,46 +309,27 @@ public class LivenessAnalysis implements GJVisitor<String, String> {
     * f2 -> SimpleExp()
     */
    public String visit(BinOp n, String argu) {
-      String _ret = null;
       n.f0.accept(this, argu);
       String temp = n.f1.accept(this, argu);
-      TempInterval interval;
-      if (currProcedure.tempIntervals.containsKey(temp)) {
-         interval = currProcedure.tempIntervals.get(temp);
-      } else {
-         interval = new TempInterval(temp);
-         currProcedure.tempIntervals.put(temp, interval);
-      }
+      TempInterval interval = currProcedure.tempIntervals.getOrDefault(temp, new TempInterval(temp));
       interval.definition = currPos;
       interval.firstUse = Math.min(interval.firstUse, currPos);
       interval.lastUse = currPos;
+      currProcedure.tempIntervals.put(temp, interval);
       n.f2.accept(this, argu);
-      return _ret;
+      return null;
    }
 
-   /**
-    * f0 -> "LE"
-    * | "NE"
-    * | "PLUS"
-    * | "MINUS"
-    * | "TIMES"
-    * | "DIV"
-    */
+   /** f0 -> "LE" | "NE" | "PLUS" | "MINUS" | "TIMES" | "DIV" */
    public String visit(Operator n, String argu) {
-      String _ret = null;
       n.f0.accept(this, argu);
-      return _ret;
+      return null;
    }
 
-   /**
-    * f0 -> Temp()
-    * | IntegerLiteral()
-    * | Label()
-    */
+   /** f0 -> Temp() | IntegerLiteral() | Label() */
    public String visit(SimpleExp n, String argu) {
-      String _ret = null;
       n.f0.accept(this, argu);
-      return _ret;
+      return null;
    }
 
    /**
@@ -384,38 +337,27 @@ public class LivenessAnalysis implements GJVisitor<String, String> {
     * f1 -> IntegerLiteral()
     */
    public String visit(Temp n, String argu) {
-      String _ret = null;
       n.f0.accept(this, argu);
       String id = n.f1.accept(this, argu);
       String temp = "TEMP " + id;
-      TempInterval interval;
-      if (currProcedure.tempIntervals.containsKey(temp)) {
-         interval = currProcedure.tempIntervals.get(temp);
-         currProcedure.tempIntervals.put(temp, interval);
-      } else {
-         interval = new TempInterval(temp);
-      }
+
+      TempInterval interval = currProcedure.tempIntervals.getOrDefault(temp, new TempInterval(temp));
       interval.firstUse = Math.min(interval.firstUse, currPos);
       interval.lastUse = currPos;
+      currProcedure.tempIntervals.put(temp, interval);
+
       return temp;
    }
 
-   /**
-    * f0 -> <INTEGER_LITERAL>
-    */
+   /** f0 -> <INTEGER_LITERAL> */
    public String visit(IntegerLiteral n, String argu) {
-      String _ret = null;
       n.f0.accept(this, argu);
       return n.f0.toString();
    }
 
-   /**
-    * f0 -> <IDENTIFIER>
-    */
+   /** f0 -> <IDENTIFIER> */
    public String visit(Label n, String argu) {
-      String _ret = null;
       n.f0.accept(this, argu);
-      return _ret;
+      return n.f0.toString();
    }
-
 }

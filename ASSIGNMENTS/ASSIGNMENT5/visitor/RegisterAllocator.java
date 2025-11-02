@@ -1,209 +1,233 @@
 package visitor;
 
 import java.util.*;
+import visitor.LivenessAnalysis.ProcedureIntervals;
+import visitor.LivenessAnalysis.TempInterval;
 
 /**
- * Linear-scan register allocator for temps discovered by LivenessAnalysis.
+ * RegisterAllocator - linear scan allocator that emits allocation changes at
+ * specific positions.
  *
- * NOTES / assumptions:
- * - Uses 18 general-purpose registers: t0..t9 then s0..s7 (t registers
- * preferred).
- * - s0..s7 are callee-saved; t0..t9 are caller-saved (we do not emit
- * save/restore
- * in this allocator — that must be handled during final code emission).
- * - For each ProcedureIntervals (from LivenessAnalysis), we allocate registers
- * for all TempInterval objects recorded there.
- * - Spilled temps are assigned sequential stack slots starting at 0 (these will
- * be used as (SPILLEDARG i) or other stack locations in MiniRA emission).
- *
- * Integration:
- * - Construct with the map produced by LivenessAnalysis (procedureIntervals).
- * - Call allocateAll(); then getAllocationForProcedure(procName) to inspect
- * results.
+ * Usage:
+ * RegisterAllocator ra = new RegisterAllocator();
+ * List<RegisterAllocator.AllocationChange> changes =
+ * ra.allocate(procIntervals);
+ * // changes are sorted by position (and then by action) so you can apply them
+ * incrementally
  */
 public class RegisterAllocator {
 
-    // The registers available for general allocation (18 registers)
-    private static final String[] REG_POOL = {
-            // prefer t regs first (caller-saved), then s regs (callee-saved)
-            "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8", "t9",
-            "s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7"
+    // The registers available for allocation (prefer s- regs first to reduce
+    // caller-save pressure).
+    private static final String[] REGISTERS = {
+            "s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7",
+            "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8", "t9"
     };
-    private final int R = REG_POOL.length; // 18
 
-    public static class Allocation {
-        public String temp; // "TEMP n"
-        public String assignedReg; // e.g. "t3" or null if spilled
-        public boolean spilled;
-        public int stackSlot; // valid if spilled (>=0)
-        public int first, last, def; // from interval
+    public static class AllocationChange {
+        public final int position; // program position where change happens
+        public final String tempId; // e.g. "TEMP 3"
+        public final ChangeKind kind; // ADD, REMOVE, SPILL
+        public final String where; // register name or "stack[n]"
 
-        public Allocation(String temp, int first, int last, int def) {
-            this.temp = temp;
-            this.first = first;
-            this.last = last;
-            this.def = def;
-            this.assignedReg = null;
-            this.spilled = false;
-            this.stackSlot = -1;
+        public enum ChangeKind {
+            ADD, REMOVE, SPILL
+        }
+
+        public AllocationChange(int position, String tempId, ChangeKind kind, String where) {
+            this.position = position;
+            this.tempId = tempId;
+            this.kind = kind;
+            this.where = where;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("pos=%d : %s %s -> %s", position, kind, tempId, where);
         }
     }
 
-    public static class ProcedureAllocationResult {
-        public String procedureName;
-        public Map<String, Allocation> allocations = new HashMap<>();
-        public int stackSlotsNeeded = 0; // number of stack slots used for spilled temps
-        public boolean anySpilled = false;
-        public int numArgs = 0; // from procedure header in LivenessAnalysis (if known)
-        public int maxCallArgs = 0; // placeholder (not computed here)
-    }
+    // Internal representation for active intervals with assigned register or stack
+    // slot.
+    private static class ActiveInfo {
+        TempInterval interval;
+        String reg; // null if spilled
+        Integer stackSlot; // null if in reg
 
-    private Map<String, LivenessAnalysis.ProcedureIntervals> procedureIntervals;
-
-    public RegisterAllocator(Map<String, LivenessAnalysis.ProcedureIntervals> procIntervals) {
-        this.procedureIntervals = procIntervals;
-    }
-
-    /**
-     * Run allocation for every procedure and return results map.
-     */
-    public Map<String, ProcedureAllocationResult> allocateAll() {
-        Map<String, ProcedureAllocationResult> results = new HashMap<>();
-        for (Map.Entry<String, LivenessAnalysis.ProcedureIntervals> e : procedureIntervals.entrySet()) {
-            String proc = e.getKey();
-            ProcedureAllocationResult r = allocateProcedure(e.getValue());
-            results.put(proc, r);
+        ActiveInfo(TempInterval interval, String reg, Integer stackSlot) {
+            this.interval = interval;
+            this.reg = reg;
+            this.stackSlot = stackSlot;
         }
-        return results;
     }
 
     /**
-     * Linear-scan allocation for one procedure.
-     *
-     * Basic algorithm:
-     * - Build an interval object for each temp with finite first/last.
-     * - Sort intervals by increasing start (first).
-     * - Keep an "active" list ordered by increasing end (last).
-     * - When processing interval i:
-     * expire intervals in active whose end < i.start
-     * if active.size == R -> need to spill: pick the interval with largest end
-     * (last)
-     * if that interval's end > i.last -> spill it (give its register to i)
-     * else spill i
-     * else allocate a free register to i
+     * Allocate registers for one procedure's intervals.
+     * Returns a list of allocation changes which are sorted by position.
      */
-    private ProcedureAllocationResult allocateProcedure(LivenessAnalysis.ProcedureIntervals procIntervals) {
-        ProcedureAllocationResult result = new ProcedureAllocationResult();
-        result.procedureName = procIntervals.procedureName;
-
-        // prepare intervals list
-        List<Allocation> intervals = new ArrayList<>();
-
-        for (Map.Entry<String, LivenessAnalysis.TempInterval> te : procIntervals.tempIntervals.entrySet()) {
-            LivenessAnalysis.TempInterval ti = te.getValue();
-            // Skip temps that were never used (firstUse may be Integer.MAX_VALUE)
-            if (ti.firstUse == Integer.MAX_VALUE || ti.lastUse == Integer.MIN_VALUE) {
+    public List<AllocationChange> allocate(ProcedureIntervals proc) {
+        // collect intervals
+        List<TempInterval> intervals = new ArrayList<>();
+        for (TempInterval t : proc.tempIntervals.values()) {
+            // ignore temps that were never used (safety)
+            if (t.firstUse == Integer.MAX_VALUE && t.definition == -1)
                 continue;
+            // treat start as definition if present else firstUse
+            if (t.definition != -1) {
+                t.firstUse = Math.min(t.firstUse, t.definition);
             }
-            Allocation a = new Allocation(te.getKey(), ti.firstUse, ti.lastUse, ti.definition);
-            intervals.add(a);
+            // some temps might only be defined but never used; still allocate a short live
+            // range
+            if (t.lastUse == Integer.MIN_VALUE) {
+                t.lastUse = t.firstUse;
+            }
+            intervals.add(t);
         }
 
-        // sort by increasing first (start)
-        intervals.sort(Comparator.comparingInt(i -> i.first));
+        // sort by increasing start (firstUse)
+        intervals.sort(Comparator.comparingInt(i -> i.firstUse));
 
-        // active list sorted by increasing last (end)
-        List<Allocation> active = new ArrayList<>();
-        // free registers stack (use as queue to prefer t0.. then s0..)
+        // data structures
+        List<AllocationChange> changes = new ArrayList<>();
+        List<ActiveInfo> active = new ArrayList<>(); // sorted by increasing end (lastUse)
         Deque<String> freeRegs = new ArrayDeque<>();
-        for (String r : REG_POOL)
-            freeRegs.addLast(r);
+        for (String r : REGISTERS)
+            freeRegs.add(r);
 
         int nextStackSlot = 0;
+        Map<String, ActiveInfo> tempToActive = new HashMap<>();
+        Map<String, Integer> spilledSlots = new HashMap<>(); // track spill slots
 
-        for (Allocation cur : intervals) {
-            // expire old intervals
-            expireOldIntervals(active, cur, freeRegs);
+        // helper to keep active sorted
+        Runnable resortActiveByEnd = () -> active.sort(Comparator.comparingInt(a -> a.interval.lastUse));
 
-            if (active.size() == R) {
-                // need to spill
-                Allocation spill = active.get(active.size() - 1); // last interval (largest end)
-                if (spill.last > cur.last) {
-                    // spill 'spill' and give its register to cur
-                    cur.assignedReg = spill.assignedReg;
-                    cur.spilled = false;
-                    // assign stack slot to spilled one
-                    spill.spilled = true;
-                    spill.stackSlot = nextStackSlot++;
-                    result.anySpilled = true;
-                    result.allocations.put(spill.temp, spill);
-                    // replace spill in active with cur (maintain ordering by last)
-                    active.remove(active.size() - 1);
-                    insertActiveSorted(active, cur);
-                    result.allocations.put(cur.temp, cur);
-                } else {
-                    // spill cur
-                    cur.spilled = true;
-                    cur.stackSlot = nextStackSlot++;
-                    result.anySpilled = true;
-                    result.allocations.put(cur.temp, cur);
+        for (TempInterval cur : intervals) {
+            int curStart = cur.firstUse;
+
+            // Expire old intervals (end < curStart)
+            List<ActiveInfo> expired = new ArrayList<>();
+            for (ActiveInfo a : new ArrayList<>(active)) {
+                if (a.interval.lastUse < curStart) {
+                    expired.add(a);
                 }
-            } else {
-                // there is a free register; give it to cur
+            }
+            for (ActiveInfo e : expired) {
+                active.remove(e);
+                if (e.reg != null) {
+                    freeRegs.addFirst(e.reg);
+                    changes.add(new AllocationChange(curStart, e.interval.tempId,
+                            AllocationChange.ChangeKind.REMOVE, e.reg));
+                } else {
+                    changes.add(new AllocationChange(curStart, e.interval.tempId,
+                            AllocationChange.ChangeKind.REMOVE, "stack[" + e.stackSlot + "]"));
+                }
+                tempToActive.remove(e.interval.tempId);
+            }
+
+            // Now allocate for cur
+            if (!freeRegs.isEmpty()) {
+                // assign a register
                 String reg = freeRegs.removeFirst();
-                cur.assignedReg = reg;
-                cur.spilled = false;
-                insertActiveSorted(active, cur);
-                result.allocations.put(cur.temp, cur);
-            }
-        }
-
-        // any remaining in active should be recorded (they likely already are)
-        for (Allocation a : active) {
-            if (!result.allocations.containsKey(a.temp))
-                result.allocations.put(a.temp, a);
-        }
-
-        result.stackSlotsNeeded = nextStackSlot;
-        // numArgs: the LivenessAnalysis Procedure constructor parsed a param count into
-        // 'params' local variable,
-        // but didn't store it. If you want the argument count here, modify
-        // LivenessAnalysis to store it.
-        result.numArgs = 0; // placeholder
-
-        // maxCallArgs requires scanning the procedure body for CALL nodes and counting
-        // arguments;
-        // add such a scan if you need this field accurate.
-        result.maxCallArgs = 0;
-
-        return result;
-    }
-
-    // remove intervals in active whose end < start; return their regs to freeRegs
-    private void expireOldIntervals(List<Allocation> active, Allocation cur, Deque<String> freeRegs) {
-        // We iterate from beginning while end < cur.first
-        List<Allocation> toRemove = new ArrayList<>();
-        for (Allocation a : active) {
-            if (a.last < cur.first) {
-                toRemove.add(a);
+                ActiveInfo info = new ActiveInfo(cur, reg, null);
+                active.add(info);
+                tempToActive.put(cur.tempId, info);
+                resortActiveByEnd.run();
+                changes.add(new AllocationChange(curStart, cur.tempId, AllocationChange.ChangeKind.ADD, reg));
             } else {
-                // because active is sorted by end, we can break early
-                break;
+                // No free registers → spill
+                ActiveInfo farthest = Collections.max(active, Comparator.comparingInt(a -> a.interval.lastUse));
+                if (farthest.interval.lastUse > cur.lastUse) {
+                    // spill the farthest and give its register to cur
+                    String stolenReg = farthest.reg;
+                    int slot = nextStackSlot++;
+                    farthest.reg = null;
+                    farthest.stackSlot = slot;
+                    spilledSlots.put(farthest.interval.tempId, slot); // record spill
+
+                    changes.add(new AllocationChange(curStart, farthest.interval.tempId,
+                            AllocationChange.ChangeKind.SPILL, "stack[" + slot + "]"));
+                    changes.add(new AllocationChange(curStart, farthest.interval.tempId,
+                            AllocationChange.ChangeKind.REMOVE, stolenReg));
+
+                    active.remove(farthest);
+                    tempToActive.remove(farthest.interval.tempId);
+
+                    ActiveInfo curInfo = new ActiveInfo(cur, stolenReg, null);
+                    active.add(curInfo);
+                    tempToActive.put(cur.tempId, curInfo);
+                    resortActiveByEnd.run();
+
+                    changes.add(new AllocationChange(curStart, cur.tempId, AllocationChange.ChangeKind.ADD, stolenReg));
+                } else {
+                    // spill current interval directly
+                    int slot = nextStackSlot++;
+                    spilledSlots.put(cur.tempId, slot); // record spill
+                    ActiveInfo curInfo = new ActiveInfo(cur, null, slot);
+                    tempToActive.put(cur.tempId, curInfo);
+                    changes.add(new AllocationChange(curStart, cur.tempId,
+                            AllocationChange.ChangeKind.SPILL, "stack[" + slot + "]"));
+                }
             }
         }
-        for (Allocation a : toRemove) {
-            active.remove(a);
-            if (!a.spilled && a.assignedReg != null) {
-                freeRegs.addLast(a.assignedReg);
+
+        // Expire remaining active intervals
+        for (ActiveInfo a : new ArrayList<>(active)) {
+            int pos = a.interval.lastUse + 1;
+            if (a.reg != null) {
+                changes.add(new AllocationChange(pos, a.interval.tempId,
+                        AllocationChange.ChangeKind.REMOVE, a.reg));
+            } else {
+                changes.add(new AllocationChange(pos, a.interval.tempId,
+                        AllocationChange.ChangeKind.REMOVE, "stack[" + a.stackSlot + "]"));
             }
+        }
+
+        // Emit REMOVE for spilled-but-not-active temps
+        for (TempInterval t : intervals) {
+            if (!tempToActive.containsKey(t.tempId)) {
+                int pos = t.lastUse + 1;
+
+                // ---- IMPROVED: check if ANY REMOVE for this temp exists already (any
+                // position)
+                boolean anyRemoveExists = false;
+                for (AllocationChange c : changes) {
+                    if (c.tempId.equals(t.tempId) && c.kind == AllocationChange.ChangeKind.REMOVE) {
+                        anyRemoveExists = true;
+                        break;
+                    }
+                }
+                if (anyRemoveExists) {
+                    continue; // skip emitting duplicate REMOVE (prevents stack(?) duplicates)
+                }
+                // ---- end improved check
+
+                Integer slot = spilledSlots.get(t.tempId); // use tracked slot
+                String where = (slot != null) ? "stack[" + slot + "]" : "stack(?)";
+                changes.add(new AllocationChange(pos, t.tempId,
+                        AllocationChange.ChangeKind.REMOVE, where));
+            }
+        }
+
+        // Sort changes for deterministic output
+        changes.sort(Comparator
+                .comparingInt((AllocationChange c) -> c.position)
+                .thenComparing(c -> c.tempId)
+                .thenComparing(c -> c.kind.toString()));
+
+        return changes;
+    }
+
+    // convenience printer
+    public static void printChanges(List<AllocationChange> changes) {
+        for (AllocationChange c : changes) {
+            System.out.println(c);
         }
     }
 
-    // insert into active so that active is sorted by increasing last (end)
-    private void insertActiveSorted(List<Allocation> active, Allocation cur) {
-        int i = 0;
-        while (i < active.size() && active.get(i).last <= cur.last)
-            i++;
-        active.add(i, cur);
+    // Example quick driver (you should invoke allocate(proc) from your pass where
+    // you have ProcedureIntervals)
+    public static void main(String[] args) {
+        System.out.println(
+                "RegisterAllocator: this main is only a placeholder. Use allocate(proc) with your ProcedureIntervals.");
     }
 }

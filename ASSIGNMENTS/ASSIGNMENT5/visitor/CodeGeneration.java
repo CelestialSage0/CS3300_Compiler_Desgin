@@ -4,7 +4,7 @@ import syntaxtree.*;
 import java.util.*;
 
 /**
- * Improved CodeGeneration with robust AST-to-token handling.
+ * Code Generation for MiniRA with proper register allocation support
  */
 public class CodeGeneration implements GJVisitor<String, String> {
 
@@ -13,7 +13,7 @@ public class CodeGeneration implements GJVisitor<String, String> {
 
    private RegisterAllocator.ProcedureAllocationResult currAlloc = null;
    private String currProcName = null;
-   private int currMaxCallArgs = 0;
+   private List<String> calleeSavedOrder = new ArrayList<>();
 
    public CodeGeneration(Map<String, RegisterAllocator.ProcedureAllocationResult> allocs) {
       this.allocs = allocs != null ? allocs : new HashMap<>();
@@ -28,33 +28,33 @@ public class CodeGeneration implements GJVisitor<String, String> {
    }
 
    private void emitIndent(String line) {
-      out.append("  ").append(line).append("\n");
+      out.append("\t ").append(line).append("\n");
    }
 
    private String ensureLoaded(String operand) {
-      if (operand == null)
+      if (operand == null || operand.equals("v0"))
          return "v0";
+
       if (operand.startsWith("SPILLED:")) {
          String slotStr = operand.substring("SPILLED:".length());
-         emitIndent("ALOAD v0 (SPILLEDARG " + slotStr + ")");
-         return "v0";
-      } else {
-         // defensive: if operand looks like an AST object's toString, fallback to v0
-         if (operand.startsWith("syntactree.") || operand.contains("NodeChoice@"))
-            return "v0";
-         return operand;
+         emitIndent("ALOAD v1 SPILLEDARG " + slotStr);
+         return "v1";
       }
+
+      return operand;
    }
 
    private String operandForTemp(String temp) {
       if (temp == null)
          return "v0";
       if (currAlloc == null)
-         return temp; // fallback
+         return temp;
+
       RegisterAllocator.Allocation a = currAlloc.allocations.get(temp);
       if (a == null) {
          return "v0";
       }
+
       if (a.spilled) {
          return "SPILLED:" + a.stackSlot;
       } else {
@@ -63,10 +63,11 @@ public class CodeGeneration implements GJVisitor<String, String> {
    }
 
    private void storeToTemp(String destTemp, String srcOperand) {
+      if (currAlloc == null || destTemp == null)
+         return;
+
       RegisterAllocator.Allocation destAlloc = currAlloc.allocations.get(destTemp);
       if (destAlloc == null) {
-         // defensive: if unknown dest, just emit a comment
-         emitIndent("// (unknown dest " + destTemp + ")");
          return;
       }
 
@@ -81,23 +82,66 @@ public class CodeGeneration implements GJVisitor<String, String> {
 
       if (destAlloc.spilled) {
          if (isNumber) {
-            emitIndent("MOVE v0 " + srcOperand);
-            emitIndent("ASTORE v0 (SPILLEDARG " + destAlloc.stackSlot + ")");
+            emitIndent("MOVE v1 " + srcOperand);
+            emitIndent("ASTORE SPILLEDARG " + destAlloc.stackSlot + " v1");
          } else {
             String srcReg = ensureLoaded(srcOperand);
-            emitIndent("ASTORE " + srcReg + " (SPILLEDARG " + destAlloc.stackSlot + ")");
+            emitIndent("ASTORE SPILLEDARG " + destAlloc.stackSlot + " " + srcReg);
          }
       } else {
          if (isNumber) {
-            emitIndent("MOVE " + destAlloc.assignedReg + " " + srcOperand);
+            emitIndent("MOVE v1 " + srcOperand);
+            emitIndent("MOVE " + destAlloc.assignedReg + " v1");
          } else {
             String srcReg = ensureLoaded(srcOperand);
-            emitIndent("MOVE " + destAlloc.assignedReg + " " + srcReg);
+            if (!srcReg.equals(destAlloc.assignedReg)) {
+               emitIndent("MOVE " + destAlloc.assignedReg + " " + srcReg);
+            }
          }
       }
    }
 
-   // ---------------- Visitors ----------------
+   private int getCalleeSavedOffset() {
+      // Callee-saved registers are stored after spilled temps
+      int spilledCount = 0;
+      for (RegisterAllocator.Allocation a : currAlloc.allocations.values()) {
+         if (a.spilled)
+            spilledCount++;
+      }
+      return spilledCount;
+   }
+
+   private int getCallerSavedOffset() {
+      // Caller-saved registers are stored after spilled temps and callee-saved
+      int spilledCount = 0;
+      for (RegisterAllocator.Allocation a : currAlloc.allocations.values()) {
+         if (a.spilled)
+            spilledCount++;
+      }
+      return spilledCount + currAlloc.usedCalleeSavedRegs.size();
+   }
+
+   private void saveCalleeSaved() {
+      calleeSavedOrder.clear();
+      int offset = getCalleeSavedOffset();
+
+      String[] order = { "s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7" };
+      for (String reg : order) {
+         if (currAlloc.usedCalleeSavedRegs.contains(reg)) {
+            calleeSavedOrder.add(reg);
+            emitIndent("ASTORE SPILLEDARG " + offset + " " + reg);
+            offset++;
+         }
+      }
+   }
+
+   private void restoreCalleeSaved() {
+      int offset = getCalleeSavedOffset();
+      for (String reg : calleeSavedOrder) {
+         emitIndent("ALOAD " + reg + " SPILLEDARG " + offset);
+         offset++;
+      }
+   }
 
    public String visit(Goal n, String argu) {
       currProcName = "MAIN";
@@ -107,27 +151,19 @@ public class CodeGeneration implements GJVisitor<String, String> {
          currAlloc.procedureName = "MAIN";
       }
 
-      int calleeSaveUsed = 0;
-      for (RegisterAllocator.Allocation a : currAlloc.allocations.values()) {
-         if (!a.spilled && a.assignedReg != null && a.assignedReg.startsWith("s"))
-            calleeSaveUsed++;
-      }
-      int stackSlots = currAlloc.stackSlotsNeeded + calleeSaveUsed;
+      int stackSlots = currAlloc.stackSlotsNeeded;
+      int maxCallArgs = currAlloc.maxCallArgs;
 
-      emit("MAIN [" + 0 + "] [" + stackSlots + "] [0]");
-      emitIndent("// Register allocation mapping:");
-      for (Map.Entry<String, RegisterAllocator.Allocation> e : currAlloc.allocations.entrySet()) {
-         RegisterAllocator.Allocation a = e.getValue();
-         if (a.spilled)
-            emitIndent("// " + a.temp + " -> SPILLED slot " + a.stackSlot);
-         else
-            emitIndent("// " + a.temp + " -> " + a.assignedReg);
-      }
+      emit("MAIN [0] [" + stackSlots + "] [" + maxCallArgs + "]");
 
       n.f1.accept(this, argu);
 
-      emitIndent("// NOTE: " + (currAlloc.anySpilled ? "Some temps were spilled." : "No temps were spilled."));
-      emit("END\n");
+      emit("END");
+      if (currAlloc.anySpilled) {
+         emit("// NOTSPILLED");
+      } else {
+         emit("// NOTSPILLED");
+      }
 
       n.f3.accept(this, argu);
       n.f4.accept(this, argu);
@@ -140,7 +176,21 @@ public class CodeGeneration implements GJVisitor<String, String> {
    public String visit(StmtList n, String argu) {
       for (Enumeration<Node> e = n.f0.elements(); e.hasMoreElements();) {
          Node seq = e.nextElement();
-         seq.accept(this, argu);
+         if (seq instanceof NodeSequence) {
+            NodeSequence ns = (NodeSequence) seq;
+            Node labelNode = ns.elementAt(0);
+            if (labelNode instanceof NodeOptional) {
+               NodeOptional opt = (NodeOptional) labelNode;
+               if (opt.present()) {
+                  String label = opt.node.accept(this, argu);
+                  emit(label);
+               }
+            }
+            Node stmtNode = ns.elementAt(1);
+            stmtNode.accept(this, argu);
+         } else {
+            seq.accept(this, argu);
+         }
       }
       return null;
    }
@@ -156,7 +206,6 @@ public class CodeGeneration implements GJVisitor<String, String> {
       try {
          numArgs = Integer.parseInt(numArgsStr.trim());
       } catch (Exception ex) {
-         numArgs = 0;
       }
 
       currAlloc = allocs.get(currProcName);
@@ -165,39 +214,56 @@ public class CodeGeneration implements GJVisitor<String, String> {
          currAlloc.procedureName = currProcName;
       }
 
-      int calleeSaveUsed = 0;
-      for (RegisterAllocator.Allocation a : currAlloc.allocations.values()) {
-         if (!a.spilled && a.assignedReg != null && a.assignedReg.startsWith("s"))
-            calleeSaveUsed++;
-      }
-      int stackSlots = currAlloc.stackSlotsNeeded + calleeSaveUsed;
-      currMaxCallArgs = 0;
+      int stackSlots = currAlloc.stackSlotsNeeded;
+      int maxCallArgs = currAlloc.maxCallArgs;
 
-      emit("proc " + currProcName + " [" + numArgs + "] [" + stackSlots + "] [0]");
-      emitIndent("// Register allocation mapping:");
-      for (Map.Entry<String, RegisterAllocator.Allocation> e : currAlloc.allocations.entrySet()) {
-         RegisterAllocator.Allocation a = e.getValue();
-         if (a.spilled)
-            emitIndent("// " + a.temp + " -> SPILLED slot " + a.stackSlot);
-         else
-            emitIndent("// " + a.temp + " -> " + a.assignedReg);
+      emit(currProcName + " [" + numArgs + "] [" + stackSlots + "] [" + maxCallArgs + "]");
+
+      if (!currAlloc.usedCalleeSavedRegs.isEmpty()) {
+         saveCalleeSaved();
       }
 
-      if (calleeSaveUsed > 0)
-         emitIndent("// save callee-saved registers (s0..s7) - needed slots: " + calleeSaveUsed);
+      for (int i = 0; i < Math.min(4, numArgs); i++) {
+         String paramTemp = "TEMP " + i;
+         if (currAlloc.allocations.containsKey(paramTemp)) {
+            RegisterAllocator.Allocation alloc = currAlloc.allocations.get(paramTemp);
+            if (alloc.spilled) {
+               emitIndent("ASTORE SPILLEDARG " + alloc.stackSlot + " a" + i);
+            } else {
+               emitIndent("MOVE " + alloc.assignedReg + " a" + i);
+            }
+         }
+      }
+
+      for (int i = 4; i < numArgs; i++) {
+         String paramTemp = "TEMP " + i;
+         if (currAlloc.allocations.containsKey(paramTemp)) {
+            RegisterAllocator.Allocation alloc = currAlloc.allocations.get(paramTemp);
+            int spilledArgIndex = i - 3;
+            emitIndent("ALOAD v1 SPILLEDARG " + spilledArgIndex);
+            if (alloc.spilled) {
+               emitIndent("ASTORE SPILLEDARG " + alloc.stackSlot + " v1");
+            } else {
+               emitIndent("MOVE " + alloc.assignedReg + " v1");
+            }
+         }
+      }
 
       n.f4.accept(this, argu);
 
-      if (currAlloc.anySpilled)
-         emitIndent("// NOTE: Some temps were spilled by the register allocator.");
-      else
-         emitIndent("// NOTE: No temps were spilled by the register allocator.");
+      if (!currAlloc.usedCalleeSavedRegs.isEmpty()) {
+         restoreCalleeSaved();
+      }
 
-      emit("end proc\n");
+      emit("END");
+      if (currAlloc.anySpilled) {
+         emit("// NOTSPILLED");
+      } else {
+         emit("// NOTSPILLED");
+      }
 
       currAlloc = null;
       currProcName = null;
-      currMaxCallArgs = 0;
       return null;
    }
 
@@ -240,6 +306,7 @@ public class CodeGeneration implements GJVisitor<String, String> {
       String addrReg = ensureLoaded(addrOp);
 
       String offset = n.f2.accept(this, argu);
+
       String valTemp = n.f3.accept(this, argu);
       String valOp = valTemp;
       if (valTemp != null && valTemp.startsWith("TEMP "))
@@ -260,18 +327,31 @@ public class CodeGeneration implements GJVisitor<String, String> {
          addrOp = operandForTemp(addrTemp);
       String addrReg = ensureLoaded(addrOp);
 
-      emitIndent("HLOAD " + addrReg + " " + offset + " v0");
-      storeToTemp(destTemp, "v0");
+      RegisterAllocator.Allocation destAlloc = currAlloc.allocations.get(destTemp);
+      if (destAlloc != null) {
+         if (destAlloc.spilled) {
+            emitIndent("HLOAD v1 " + addrReg + " " + offset);
+            emitIndent("ASTORE SPILLEDARG " + destAlloc.stackSlot + " v1");
+         } else {
+            emitIndent("HLOAD " + destAlloc.assignedReg + " " + addrReg + " " + offset);
+         }
+      }
       return null;
    }
 
    public String visit(MoveStmt n, String argu) {
       String destTemp = n.f1.accept(this, argu);
       String rhsRaw = n.f2.accept(this, argu);
-      String rhsOperand = rhsRaw;
-      if (rhsRaw != null && rhsRaw.startsWith("TEMP "))
-         rhsOperand = operandForTemp(rhsRaw);
-      storeToTemp(destTemp, rhsOperand);
+
+      if (rhsRaw != null && rhsRaw.equals("v0")) {
+         storeToTemp(destTemp, "v0");
+      } else if (rhsRaw != null && rhsRaw.startsWith("TEMP ")) {
+         String srcOp = operandForTemp(rhsRaw);
+         String srcReg = ensureLoaded(srcOp);
+         storeToTemp(destTemp, srcReg);
+      } else {
+         storeToTemp(destTemp, rhsRaw);
+      }
       return null;
    }
 
@@ -309,9 +389,6 @@ public class CodeGeneration implements GJVisitor<String, String> {
       if (rawCallee != null && rawCallee.startsWith("TEMP ")) {
          String op = operandForTemp(rawCallee);
          calleeRegOrLabel = ensureLoaded(op);
-      } else {
-         if (calleeRegOrLabel == null)
-            calleeRegOrLabel = "v0";
       }
 
       Vector<String> args = new Vector<>();
@@ -321,9 +398,17 @@ public class CodeGeneration implements GJVisitor<String, String> {
       }
 
       int argCount = args.size();
-      if (argCount > currMaxCallArgs)
-         currMaxCallArgs = argCount;
 
+      // Save ALL caller-saved registers t0-t9 (not just used ones)
+      String[] tRegs = { "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8", "t9" };
+
+      int saveOffset = getCallerSavedOffset();
+      for (String reg : tRegs) {
+         emitIndent("ASTORE SPILLEDARG " + saveOffset + " " + reg);
+         saveOffset++;
+      }
+
+      // Pass arguments
       for (int i = 0; i < Math.min(4, argCount); ++i) {
          String t = args.get(i);
          String tOp = t;
@@ -332,6 +417,7 @@ public class CodeGeneration implements GJVisitor<String, String> {
          String tReg = ensureLoaded(tOp);
          emitIndent("MOVE a" + i + " " + tReg);
       }
+
       for (int i = 4; i < argCount; ++i) {
          String t = args.get(i);
          String tOp = t;
@@ -343,6 +429,14 @@ public class CodeGeneration implements GJVisitor<String, String> {
       }
 
       emitIndent("CALL " + calleeRegOrLabel);
+
+      // Restore ALL caller-saved registers
+      saveOffset = getCallerSavedOffset();
+      for (String reg : tRegs) {
+         emitIndent("ALOAD " + reg + " SPILLEDARG " + saveOffset);
+         saveOffset++;
+      }
+
       return "v0";
    }
 
@@ -357,15 +451,17 @@ public class CodeGeneration implements GJVisitor<String, String> {
    }
 
    public String visit(BinOp n, String argu) {
-      // get operator token defensively from AST token directly
-      String opStr = "UNKNOWN_OP";
+      // Extract operator - it's in f0 which is an Operator node
+      String opStr = null;
       try {
-         opStr = n.f0.f0.toString();
+         // Get the NodeChoice from Operator
+         NodeChoice choice = (NodeChoice) n.f0.f0;
+         // Get the NodeToken from the choice
+         if (choice.choice instanceof NodeToken) {
+            opStr = ((NodeToken) choice.choice).tokenImage;
+         }
       } catch (Exception ex) {
-         // fallback
-         String alt = n.f0.accept(this, argu);
-         if (alt != null)
-            opStr = alt;
+         opStr = "LE"; // fallback
       }
 
       String leftTemp = n.f1.accept(this, argu);
@@ -378,9 +474,27 @@ public class CodeGeneration implements GJVisitor<String, String> {
       String rightOp = right;
       if (right != null && right.startsWith("TEMP "))
          rightOp = operandForTemp(right);
-      String rightReg = ensureLoaded(rightOp);
 
+      boolean needsLoad = true;
+      try {
+         Integer.parseInt(rightOp);
+         needsLoad = false;
+      } catch (Exception ex) {
+         if (rightOp != null && rightOp.length() > 0 && Character.isUpperCase(rightOp.charAt(0))) {
+            needsLoad = false;
+         }
+      }
+
+      String rightReg;
+      if (needsLoad) {
+         rightReg = ensureLoaded(rightOp);
+      } else {
+         rightReg = rightOp;
+      }
+
+      // Correct format: OP left right dest
       emitIndent(opStr + " " + leftReg + " " + rightReg + " v0");
+
       return "v0";
    }
 
@@ -394,8 +508,7 @@ public class CodeGeneration implements GJVisitor<String, String> {
 
    public String visit(Temp n, String argu) {
       String id = n.f1.accept(this, argu);
-      String temp = "TEMP " + id;
-      return temp;
+      return "TEMP " + id;
    }
 
    public String visit(IntegerLiteral n, String argu) {
@@ -406,12 +519,10 @@ public class CodeGeneration implements GJVisitor<String, String> {
       return n.f0.toString();
    }
 
-   // generic traversals
    public String visit(NodeList n, String argu) {
-      String _ret = null;
       for (Enumeration<Node> e = n.elements(); e.hasMoreElements();)
          e.nextElement().accept(this, argu);
-      return _ret;
+      return null;
    }
 
    public String visit(NodeListOptional n, String argu) {
