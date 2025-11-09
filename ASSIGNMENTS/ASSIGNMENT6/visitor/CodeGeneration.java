@@ -97,10 +97,10 @@ public class CodeGeneration implements GJVisitor<String, String> {
       System.out.println("main:");
       System.out.println("\tmove $fp, $sp");
       System.out.println("\tsw $ra, -4($fp)");
-      System.out.println("\tsubu $sp, $sp, " + (Integer.parseInt(StackSpace) + 1 * 4));
+      System.out.println("\tsubu $sp, $sp, " + ((Integer.parseInt(StackSpace) + 1) * 4));
       n.f10.accept(this, argu);
       n.f11.accept(this, argu);
-      System.out.println("\taddu $sp, $sp, " + (Integer.parseInt(StackSpace) + 1 * 4));
+      System.out.println("\taddu $sp, $sp, " + ((Integer.parseInt(StackSpace) + 1) * 4));
       System.out.println("\tlw $ra, -4($fp)");
       System.out.println("\tj $ra\n");
       n.f12.accept(this, argu);
@@ -190,11 +190,11 @@ public class CodeGeneration implements GJVisitor<String, String> {
       System.out.println("\tsw $fp, -8($sp)");
       System.out.println("\tmove $fp, $sp");
       System.out.println("\tsw $ra, -4($fp)");
-      System.out.println("\tsubu $sp, $sp, " + (Integer.parseInt(StackSpace) + 2 * 4));
+      System.out.println("\tsubu $sp, $sp, " + ((Integer.parseInt(StackSpace) + 2) * 4));
 
       n.f10.accept(this, argu);
 
-      System.out.println("\taddu $sp, $sp, " + (Integer.parseInt(StackSpace) + 2 * 4));
+      System.out.println("\taddu $sp, $sp, " + ((Integer.parseInt(StackSpace) + 2) * 4));
       System.out.println("\tlw $ra, -4($fp)");
       System.out.println("\tlw $fp, -8($sp)");
       System.out.println("\tj $ra\n");
@@ -296,7 +296,7 @@ public class CodeGeneration implements GJVisitor<String, String> {
       String reg1 = n.f1.accept(this, argu);
       String reg2 = n.f2.accept(this, argu);
       String num = n.f3.accept(this, argu);
-      System.out.println("\t$lw " + reg1 + ", " + num + "(" + reg2 + ")");
+      System.out.println("\tlw " + reg1 + ", " + num + "(" + reg2 + ")");
       return _ret;
    }
 
@@ -310,8 +310,19 @@ public class CodeGeneration implements GJVisitor<String, String> {
       n.f0.accept(this, argu);
       String reg1 = n.f1.accept(this, argu);
       String exp = n.f2.accept(this, argu);
-      // CHECK HERE, NEEDS ATTENTION!!!!!!!!!!!!!!!!!!
-      System.out.println("\tmove " + reg1 + ", " + exp);
+    if (exp.startsWith("$")) {
+        // It's a register
+        System.out.println("\tmove " + reg1 + ", " + exp);
+    } else {
+        try {
+            // Try parsing as integer
+            int value = Integer.parseInt(exp);
+            System.out.println("\tli " + reg1 + ", " + value);
+        } catch (NumberFormatException e) {
+            // Otherwise, assume it's a label/string
+            System.out.println("\tla " + reg1 + ", " + exp);
+        }
+    }
       return _ret;
    }
 
@@ -323,7 +334,7 @@ public class CodeGeneration implements GJVisitor<String, String> {
       String _ret = null;
       n.f0.accept(this, argu);
       String exp = n.f1.accept(this, argu);
-      System.out.println("\tmove $a0 " + exp);
+      System.out.println("\tmove $a0, " + exp);
       System.out.println("\tjal _print");
       return _ret;
    }
