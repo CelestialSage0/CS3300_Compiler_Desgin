@@ -15,6 +15,9 @@ public class CodeGeneration implements GJVisitor<String, String> {
    //
    // Auto class visitors--probably don't need to be overridden.
    //
+   private int currParams = 0;
+   private int currSlots = 0;
+
    public String visit(NodeList n, String argu) {
       String _ret = null;
       int _count = 0;
@@ -92,15 +95,22 @@ public class CodeGeneration implements GJVisitor<String, String> {
       n.f7.accept(this, argu);
       String MaxParams = n.f8.accept(this, argu);
       n.f9.accept(this, argu);
+
+      this.currParams = Integer.parseInt(params);
+      this.currSlots = Math.max(Integer.parseInt(MaxParams) - 4, 0);
+      int frameSize = (Integer.parseInt(StackSpace) + 1 + this.currSlots) * 4;
+
       System.out.println("\t.text");
       System.out.println("\t.globl main");
       System.out.println("main:");
       System.out.println("\tmove $fp, $sp");
       System.out.println("\tsw $ra, -4($fp)");
-      System.out.println("\tsubu $sp, $sp, " + ((Integer.parseInt(StackSpace) + 1) * 4));
+      System.out.println("\tsubu $sp, $sp, " + frameSize);
+
       n.f10.accept(this, argu);
       n.f11.accept(this, argu);
-      System.out.println("\taddu $sp, $sp, " + ((Integer.parseInt(StackSpace) + 1) * 4));
+
+      System.out.println("\taddu $sp, $sp, " + frameSize);
       System.out.println("\tlw $ra, -4($fp)");
       System.out.println("\tj $ra\n");
       n.f12.accept(this, argu);
@@ -184,17 +194,22 @@ public class CodeGeneration implements GJVisitor<String, String> {
       n.f7.accept(this, argu);
       String maxParams = n.f8.accept(this, argu);
       n.f9.accept(this, argu);
+
+      this.currParams = Integer.parseInt(params);
+      this.currSlots = Math.max(Integer.parseInt(maxParams) - 4, 0);
+      int frameSize = (Integer.parseInt(StackSpace) + 2 + this.currSlots) * 4;
+
       System.out.println("\t.text");
       System.out.println("\t.globl " + lbl);
       System.out.println(lbl + ":");
       System.out.println("\tsw $fp, -8($sp)");
       System.out.println("\tmove $fp, $sp");
       System.out.println("\tsw $ra, -4($fp)");
-      System.out.println("\tsubu $sp, $sp, " + ((Integer.parseInt(StackSpace) + 2) * 4));
+      System.out.println("\tsubu $sp, $sp, " + frameSize);
 
       n.f10.accept(this, argu);
 
-      System.out.println("\taddu $sp, $sp, " + ((Integer.parseInt(StackSpace) + 2) * 4));
+      System.out.println("\taddu $sp, $sp, " + frameSize);
       System.out.println("\tlw $ra, -4($fp)");
       System.out.println("\tlw $fp, -8($sp)");
       System.out.println("\tj $ra\n");
@@ -310,19 +325,16 @@ public class CodeGeneration implements GJVisitor<String, String> {
       n.f0.accept(this, argu);
       String reg1 = n.f1.accept(this, argu);
       String exp = n.f2.accept(this, argu);
-    if (exp.startsWith("$")) {
-        // It's a register
-        System.out.println("\tmove " + reg1 + ", " + exp);
-    } else {
-        try {
-            // Try parsing as integer
+      if (exp.startsWith("$")) {
+         System.out.println("\tmove " + reg1 + ", " + exp);
+      } else {
+         try {
             int value = Integer.parseInt(exp);
             System.out.println("\tli " + reg1 + ", " + value);
-        } catch (NumberFormatException e) {
-            // Otherwise, assume it's a label/string
+         } catch (NumberFormatException e) {
             System.out.println("\tla " + reg1 + ", " + exp);
-        }
-    }
+         }
+      }
       return _ret;
    }
 
@@ -334,7 +346,10 @@ public class CodeGeneration implements GJVisitor<String, String> {
       String _ret = null;
       n.f0.accept(this, argu);
       String exp = n.f1.accept(this, argu);
-      System.out.println("\tmove $a0, " + exp);
+      if (exp.startsWith("$"))
+         System.out.println("\tmove $a0, " + exp);
+      else
+         System.out.println("\tli $a0, " + exp);
       System.out.println("\tjal _print");
       return _ret;
    }
@@ -349,7 +364,17 @@ public class CodeGeneration implements GJVisitor<String, String> {
       n.f0.accept(this, argu);
       String reg = n.f1.accept(this, argu);
       String arg = n.f2.accept(this, argu);
-      System.out.println("\tlw " + reg + ", " + (Integer.parseInt(arg) * 4) + "($sp)");
+
+      int _num = Integer.parseInt(arg);
+      int num2 = Math.max(0, this.currParams
+            - 4);
+
+      if (_num < num2) {
+         System.out.println("\tlw " + reg + ", " + (_num * 4) + "($fp)");
+      } else {
+         int offset = (this.currSlots + _num - num2) * 4;
+         System.out.println("\tlw " + reg + ", " + offset + "($sp)");
+      }
       return _ret;
    }
 
@@ -363,7 +388,17 @@ public class CodeGeneration implements GJVisitor<String, String> {
       n.f0.accept(this, argu);
       String num = n.f1.accept(this, argu);
       String reg = n.f2.accept(this, argu);
-      System.out.println("\tsw " + reg + ", " + (Integer.parseInt(num) * 4) + "($sp)");
+
+      int _num = Integer.parseInt(num);
+      int num2 = Math.max(0, this.currParams
+            - 4);
+
+      if (_num < num2) {
+         System.out.println("\tsw " + reg + ", " + (_num * 4) + "($fp)");
+      } else {
+         int offset = (this.currSlots + _num - num2) * 4;
+         System.out.println("\tsw " + reg + ", " + offset + "($sp)");
+      }
       return _ret;
    }
 
@@ -375,9 +410,10 @@ public class CodeGeneration implements GJVisitor<String, String> {
    public String visit(PassArgStmt n, String argu) {
       String _ret = null;
       n.f0.accept(this, argu);
-      String num = n.f1.accept(this, argu);
+      String numStr = n.f1.accept(this, argu);
       String reg = n.f2.accept(this, argu);
-      System.out.println("\tsw " + reg + ", " + ((Integer.parseInt(num) - 1) * 4) + "($sp)");
+      int num = Integer.parseInt(numStr);
+      System.out.println("\tsw " + reg + ", " + ((num - 1) * 4) + "($sp)");
       return _ret;
    }
 
@@ -410,7 +446,10 @@ public class CodeGeneration implements GJVisitor<String, String> {
    public String visit(HAllocate n, String argu) {
       n.f0.accept(this, argu);
       String exp = n.f1.accept(this, argu);
-      System.out.println("\tmove $a0, " + exp);
+      if (exp.startsWith("$"))
+         System.out.println("\tmove $a0, " + exp);
+      else
+         System.out.println("\tli $a0, " + exp);
       System.out.println("\tjal _halloc");
       return "$v0";
    }
@@ -424,15 +463,30 @@ public class CodeGeneration implements GJVisitor<String, String> {
       String op = n.f0.accept(this, argu);
       String reg = n.f1.accept(this, argu);
       String exp = n.f2.accept(this, argu);
-      String opCode = switch (op) {
-         case "PLUS" -> "add";
-         case "MINUS" -> "sub";
-         case "TIMES" -> "mul";
-         case "DIV" -> "div";
-         case "LE" -> "sle";
-         case "NE" -> "sne";
-         default -> "???";
-      };
+      String opCode;
+      switch (op) {
+         case "PLUS":
+            opCode = "add";
+            break;
+         case "MINUS":
+            opCode = "sub";
+            break;
+         case "TIMES":
+            opCode = "mul";
+            break;
+         case "DIV":
+            opCode = "div";
+            break;
+         case "LE":
+            opCode = "sle";
+            break;
+         case "NE":
+            opCode = "sne";
+            break;
+         default:
+            opCode = "???";
+            break;
+      }
 
       System.out.println("\t" + opCode + " $v1, " + reg + ", " + exp);
       return "$v1";
@@ -538,5 +592,4 @@ public class CodeGeneration implements GJVisitor<String, String> {
       n.f0.accept(this, argu);
       return _ret;
    }
-
 }

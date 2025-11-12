@@ -1,0 +1,9 @@
+spim: (parser) syntax error on line 20 of file output/5_6334840259225851797.s
+	  la $s2, Wrapper$call
+	                 ^
+The following symbols are undefined:
+Wrapper
+_halloc
+
+Instruction references undefined symbol at 0x00400040
+  [0x00400040]	0x0c000000  jal 0x00000000 [_halloc]        ; 11: jal _halloc
